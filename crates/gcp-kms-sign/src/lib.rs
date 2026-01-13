@@ -3,8 +3,13 @@
 //! Provides API to sign data using asymmetric keys stored in Google Cloud KMS.
 //! No other KMS operations are supported.
 
-
-#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::todo, clippy::unimplemented)]
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::todo,
+    clippy::unimplemented
+)]
 #![deny(missing_docs)]
 
 use thiserror::Error;
@@ -38,7 +43,7 @@ pub enum KeyVersionState {
     /// Unsupported state.
     /// We don't care what the state is, the key version can't be used to sign.
     #[serde(untagged)]
-    UnsupportedState(String)
+    UnsupportedState(String),
 }
 
 /// The algorithm of a KMS key version.
@@ -49,11 +54,10 @@ pub enum KeyVersionAlgorithm {
     RsaSign2048Pkcs1Sha256,
     // TODO: This is not exhaustive list, we should add more supported algorithms as needed,
     //       or maybe just allow anything starting with RSA_SIGN_... ?
-
     /// Unsupported algorithm.
     /// We don't care what the algorithm is, the key version can't be used to sign.
     #[serde(untagged)]
-    UnsupportedAlgorithm(String)
+    UnsupportedAlgorithm(String),
 }
 
 const SCOPES: &[&str] = &["https://www.googleapis.com/auth/cloudkms"];
@@ -89,12 +93,7 @@ impl GcpKmsKeyVersion {
             self.key_version_name
         );
 
-        let resp = client
-            .get(&url)
-            .bearer_auth(token.as_str())
-            .send()
-            .await
-            ?;
+        let resp = client.get(&url).bearer_auth(token.as_str()).send().await?;
 
         if resp.status().is_success() {
             let meta: KeyVersionMetadata = resp.json().await?;
@@ -128,15 +127,16 @@ impl GcpKmsKeyVersion {
             signature: String,
         }
 
-        let request_body = AsymmetricSignRequest { data: BASE64_STANDARD.encode(data) };
+        let request_body = AsymmetricSignRequest {
+            data: BASE64_STANDARD.encode(data),
+        };
 
         let resp = client
             .post(&url)
             .bearer_auth(token.as_str())
             .json(&request_body)
             .send()
-            .await
-            ?;
+            .await?;
 
         if resp.status().is_success() {
             let sign_resp: AsymmetricSignResponse = resp.json().await?;
@@ -147,7 +147,6 @@ impl GcpKmsKeyVersion {
         }
     }
 }
-
 
 /// Errors for GcpKmsSign operations.
 #[derive(Error, Debug)]
