@@ -1,6 +1,6 @@
 [package]
 name = "gcp-kms-sign"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2024"
 
 [dependencies]
@@ -10,4 +10,3 @@ http = "1.4.0"
 reqwest = { version = "0.13.1", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.17"
-tokio = { version = "1.49.0", features = ["macros"] }

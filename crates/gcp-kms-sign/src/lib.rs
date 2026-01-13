@@ -1,6 +1,6 @@
 //! GCP KMS Signer
 //!
-//! Provides API to sign data using assymetric keys stored in Google Cloud KMS.
+//! Provides API to sign data using asymmetric keys stored in Google Cloud KMS.
 //! No other KMS operations are supported.
 
 
@@ -107,7 +107,7 @@ impl GcpKmsKeyVersion {
     /// Sign data using the key version.
     ///
     /// This takes care of base64 encoding/decoding as needed by GCP KMS API, the input and output are raw bytes.
-    pub async fn assymetric_sign(&self, data: &[u8]) -> Result<Vec<u8>> {
+    pub async fn asymmetric_sign(&self, data: &[u8]) -> Result<Vec<u8>> {
         use base64::prelude::*;
 
         let client = reqwest::Client::new();
@@ -173,16 +173,4 @@ pub enum Error {
 /// Result type for GcpKmsSign operations.
 pub type Result<T> = std::result::Result<T, Error>;
 
-// // todo : remove tokio dependency from this lib, tests can be mocked maybe? or just skip test here...
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn it_works() {
-        let key = GcpKmsKeyVersion::new("projects/example-project/locations/global/keyRings/example-keyring/cryptoKeys/example-key/cryptoKeyVersions/1").await.unwrap();
-        let data = b"hello world";
-        let signature = key.assymetric_sign(data).await.unwrap();
-        println!("Signature: {:?}", signature);
-    }
-}
+// TODO: Maybe add a unit test, but the logic is pretty simple if we mock out the GCP endpoints...

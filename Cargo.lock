@@ -268,8 +268,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "gcp-kms-sign"
+name = "gaap"
 version = "0.1.0"
+dependencies = [
+ "gcp-kms-sign",
+ "tokio",
+]
+
+[[package]]
+name = "gcp-kms-sign"
+version = "0.0.0"
 dependencies = [
  "base64",
  "gcp_auth",
@@ -277,7 +285,6 @@ dependencies = [
  "reqwest",
  "serde",
  "thiserror 2.0.17",
- "tokio",
 ]
 
 [[package]]
