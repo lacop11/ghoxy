@@ -11,7 +11,7 @@ use thiserror::Error;
 
 /// GCP KMS key version.
 pub struct GcpKmsKeyVersion {
-    credentials: google_cloud_auth::credentials::AccessTokenCredentials,
+    auth_provider: std::sync::Arc<dyn gcp_auth::TokenProvider>,
     key_version_name: String,
 }
 
@@ -56,16 +56,16 @@ pub enum KeyVersionAlgorithm {
     UnsupportedAlgorithm(String)
 }
 
+const SCOPES: &[&str] = &["https://www.googleapis.com/auth/cloudkms"];
+
 impl GcpKmsKeyVersion {
     /// Create a new GcpKmsKeyVersion instance.
     ///
     /// Will check if the provided key version can be used for signing.
     pub async fn new(key_version_name: &str) -> Result<Self> {
-        // Create client with default credentials.
-        let credentials = google_cloud_auth::credentials::Builder::default()
-            .build_access_token_credentials()?;
+        let auth_provider = gcp_auth::provider().await?;
         let key_version = Self {
-            credentials,
+            auth_provider,
             key_version_name: key_version_name.to_string(),
         };
 
@@ -82,7 +82,7 @@ impl GcpKmsKeyVersion {
     /// Get metadata about the key version.
     pub async fn get_medatadata(&self) -> Result<KeyVersionMetadata> {
         let client = reqwest::Client::new();
-        let token = self.credentials.access_token().await?;
+        let token = self.auth_provider.token(SCOPES).await?;
 
         let url = format!(
             "https://cloudkms.googleapis.com/v1/{}",
@@ -91,7 +91,7 @@ impl GcpKmsKeyVersion {
 
         let resp = client
             .get(&url)
-            .bearer_auth(&token.token)
+            .bearer_auth(token.as_str())
             .send()
             .await
             ?;
@@ -111,7 +111,7 @@ impl GcpKmsKeyVersion {
         use base64::prelude::*;
 
         let client = reqwest::Client::new();
-        let token = self.credentials.access_token().await?;
+        let token = self.auth_provider.token(SCOPES).await?;
 
         let url = format!(
             "https://cloudkms.googleapis.com/v1/{}:asymmetricSign",
@@ -132,7 +132,7 @@ impl GcpKmsKeyVersion {
 
         let resp = client
             .post(&url)
-            .bearer_auth(&token.token)
+            .bearer_auth(token.as_str())
             .json(&request_body)
             .send()
             .await
@@ -153,10 +153,8 @@ impl GcpKmsKeyVersion {
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
 pub enum Error {
-    #[error("GCP Auth build error: {0}")]
-    GcpAuthBuildError(#[from] google_cloud_auth::build_errors::Error),
-    #[error("GCP Auth token error: {0}")]
-    GcpAuthTokenError(#[from] google_cloud_auth::errors::CredentialsError),
+    #[error("GCP Auth error: {0}")]
+    GcpAuthError(#[from] gcp_auth::Error),
 
     #[error("HTTP request error: {0}")]
     HttpRequestError(#[from] reqwest::Error),
@@ -176,15 +174,15 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 // // todo : remove tokio dependency from this lib, tests can be mocked maybe? or just skip test here...
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[tokio::test]
-//     async fn it_works() {
-//         let key = GcpKmsKeyVersion::new("projects/example-project/locations/global/keyRings/example-keyring/cryptoKeys/example-key/cryptoKeyVersions/1").await.unwrap();
-//         let data = b"hello world";
-//         let signature = key.assymetric_sign(data).await.unwrap();
-//         println!("Signature: {:?}", signature);
-//     }
-// }
+    #[tokio::test]
+    async fn it_works() {
+        let key = GcpKmsKeyVersion::new("projects/example-project/locations/global/keyRings/example-keyring/cryptoKeys/example-key/cryptoKeyVersions/1").await.unwrap();
+        let data = b"hello world";
+        let signature = key.assymetric_sign(data).await.unwrap();
+        println!("Signature: {:?}", signature);
+    }
+}
