@@ -34,18 +34,21 @@
     in
     {
       overlays.default = final: prev: {
-        rustToolchain =
-          with inputs.fenix.packages.${prev.stdenv.hostPlatform.system};
-          combine (
-            with stable;
-            [
-              clippy
-              rustc
-              cargo
-              rustfmt
-              rust-src
-            ]
-          );
+        rustToolchain = inputs.fenix.packages.${prev.stdenv.hostPlatform.system}.fromToolchainFile {
+          file = ./rust-toolchain.toml;
+          sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+        };
+          # with inputs.fenix.packages.${prev.stdenv.hostPlatform.system};
+          # combine (
+          #   with stable;
+          #   [
+          #     clippy
+          #     rustc
+          #     cargo
+          #     rustfmt
+          #     rust-src
+          #   ]
+          # );
       };
 
       devShells = forEachSupportedSystem (
