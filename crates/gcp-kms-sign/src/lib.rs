@@ -31,6 +31,9 @@ pub struct KeyVersionMetadata {
     pub state: KeyVersionState,
     /// The algorithm of the key version.
     pub algorithm: KeyVersionAlgorithm,
+    /// The protection level of the key version.
+    #[serde(rename = "protectionLevel")]
+    pub protection_level: KeyVersionProtectionLevel,
 }
 
 /// The state of a KMS key version.
@@ -60,6 +63,21 @@ pub enum KeyVersionAlgorithm {
     UnsupportedAlgorithm(String),
 }
 
+
+/// The protection level of a KMS key version.
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub enum KeyVersionProtectionLevel {
+    /// The key is stored in HSM.
+    /// This is the only supported protection level.
+    #[serde(rename = "HSM")]
+    Hsm,
+    /// Unsupported protection level.
+    /// We don't care what the protection level is, to ensure best possible security we
+    /// refuse anything other than HSM even if it would technically work.
+    #[serde(untagged)]
+    UnsupportedProtectionLevel(String),
+}
+
 const SCOPES: &[&str] = &["https://www.googleapis.com/auth/cloudkms"];
 
 impl GcpKmsKeyVersion {
@@ -79,6 +97,11 @@ impl GcpKmsKeyVersion {
         }
         if let KeyVersionAlgorithm::UnsupportedAlgorithm(s) = metadata.algorithm {
             return Err(Error::UnsupportedAlgorithm(s));
+        }
+        if let KeyVersionProtectionLevel::UnsupportedProtectionLevel(s) =
+            metadata.protection_level
+        {
+            return Err(Error::UnsupportedProtectionLevel(s));
         }
         Ok(key_version)
     }
@@ -164,6 +187,8 @@ pub enum Error {
     UnsupportedState(String),
     #[error("Key has unsupported algorithm: {0}")]
     UnsupportedAlgorithm(String),
+    #[error("Key has unsupported protection level: {0}")]
+    UnsupportedProtectionLevel(String),
 
     #[error("Base64 decode error: {0}")]
     Base64DecodeError(#[from] base64::DecodeError),
