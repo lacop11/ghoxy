@@ -1,0 +1,18 @@
+# TODO: Go over the full set of config options and tune it more.
+
+[bans]
+# Multiple versions of the same crate are not ideal but hard to avoid,
+# some of our dependencies individually already break this rule. Just allow it.
+multiple-versions = "allow"
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "ISC",
+    "BSD-3-Clause",
+    "Unicode-3.0",
+    "CDLA-Permissive-2.0",
+    # TODO: Maybe we can avoid openssl dependency entirely and just use rustls?
+    "OpenSSL",
+]
