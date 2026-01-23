@@ -46,6 +46,7 @@ impl TokenValidator {
             let jwks = jwks::Jwks::from_oidc_url(openid_config_url).await?;
             let mut jwks_guard = jwks_lock.write().await;
             *jwks_guard = Some(jwks);
+            // TODO: Log the list of keys each time we update it (first time, or when changed, to reduce noise).
         }
         Ok(())
     }

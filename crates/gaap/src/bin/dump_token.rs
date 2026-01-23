@@ -1,3 +1,5 @@
+/// Testing tool to validate and dump parsed JWT tokens.
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]

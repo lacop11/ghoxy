@@ -138,3 +138,5 @@ fn get_non_empty_claim(raw: &serde_json::Value, claim_name: &'static str) -> Res
     }
     Ok(claim_value)
 }
+
+// TODO: Some basic tests for the claims parsing.
