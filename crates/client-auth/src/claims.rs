@@ -32,7 +32,7 @@ pub struct GoogleServiceAccountClaims {
 }
 
 impl GoogleServiceAccountClaims {
-    pub fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
+    fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
         if raw.get("iss").and_then(|v| v.as_str()) != Some("https://accounts.google.com") {
             return Err(crate::Error::TokenClaimMissingOrInvalid("iss"));
         }
@@ -99,7 +99,7 @@ pub struct GithubActionsClaims {
 }
 
 impl GithubActionsClaims {
-    pub fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
+    fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
         Ok(Self {
             actor: get_non_empty_claim(raw, "actor")?,
             repository: get_non_empty_claim(raw, "repository")?,
@@ -110,7 +110,7 @@ impl GithubActionsClaims {
 }
 
 impl Claims {
-    pub fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
+    pub(crate) fn from_raw_claims(raw: &serde_json::Value) -> Result<Self> {
         let known = match raw.get("iss").and_then(|v| v.as_str()) {
             Some("https://accounts.google.com") => Some(KnownClaims::GoogleServiceAccount(
                 GoogleServiceAccountClaims::from_raw_claims(raw)?,

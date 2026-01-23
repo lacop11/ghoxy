@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{Claims, Error, Result};
 
+/// Options for configuring a TokenValidator.
 pub struct TokenValidatorOptions {
     /// The expected audience (`aud` claim) in the token.
     pub expected_audience: String,
@@ -11,12 +12,19 @@ pub struct TokenValidatorOptions {
     pub token_age_leeway_seconds: u32,
 }
 
+/// Validates JWT tokens using JWKS from allowed issuers.
+///
+/// Maintains a cache of JWKS for each allowed issuer, which must be
+/// periodically updated by calling `update_jwks`.
 pub struct TokenValidator {
     options: TokenValidatorOptions,
     cached_jwks: HashMap<String, Arc<tokio::sync::RwLock<Option<jwks::Jwks>>>>,
 }
 
 impl TokenValidator {
+    /// Creates a new TokenValidator with the provided options.
+    ///
+    /// Does not fetch JWKS automatically, `update_jwks` must be called separately.
     pub fn from_options(options: TokenValidatorOptions) -> Self {
         let mut cached_jwks = HashMap::new();
         for issuer in &options.allowed_issuers {

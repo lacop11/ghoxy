@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("Invalid JWT: {0}")]
     InvalidJwt(#[from] jsonwebtoken::errors::Error),
@@ -21,4 +22,5 @@ pub enum Error {
     TokenClaimMissingOrInvalid(&'static str),
 }
 
+/// Result type for client-auth operations.
 pub type Result<T> = std::result::Result<T, Error>;
