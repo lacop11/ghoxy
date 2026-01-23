@@ -63,7 +63,6 @@ pub enum KeyVersionAlgorithm {
     UnsupportedAlgorithm(String),
 }
 
-
 /// The protection level of a KMS key version.
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub enum KeyVersionProtectionLevel {
@@ -98,8 +97,7 @@ impl GcpKmsKeyVersion {
         if let KeyVersionAlgorithm::UnsupportedAlgorithm(s) = metadata.algorithm {
             return Err(Error::UnsupportedAlgorithm(s));
         }
-        if let KeyVersionProtectionLevel::UnsupportedProtectionLevel(s) =
-            metadata.protection_level
+        if let KeyVersionProtectionLevel::UnsupportedProtectionLevel(s) = metadata.protection_level
         {
             return Err(Error::UnsupportedProtectionLevel(s));
         }

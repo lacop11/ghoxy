@@ -6,5 +6,11 @@ edition = "2024"
 
 [dependencies]
 gcp-kms-sign = { path = "../gcp-kms-sign" }
+client-auth = { path = "../client-auth" }
 
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
+clap = { version = "4.5.54", features = ["derive"] }
+
+[[bin]]
+name = "dump-token"
+path = "src/bin/dump_token.rs"
