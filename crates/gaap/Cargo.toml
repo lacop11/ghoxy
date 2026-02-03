@@ -10,7 +10,13 @@ client-auth = { path = "../client-auth" }
 
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 clap = { version = "4.5.54", features = ["derive"] }
+rustls = { version = "0.23.26", default-features=false, features = ["aws_lc_rs"] }
+
 
 [[bin]]
-name = "dump-token"
-path = "src/bin/dump_token.rs"
+name = "dump-client-token"
+path = "src/bin/dump_client_token.rs"
+
+[[bin]]
+name = "create-github-token"
+path = "src/bin/create_github_token.rs"
