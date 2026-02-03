@@ -1,4 +1,4 @@
-/// Testing tool to validate and dump parsed JWT tokens.
+//! Testing tool to validate and dump parsed JWT tokens.
 
 use clap::Parser;
 
