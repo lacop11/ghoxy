@@ -15,17 +15,15 @@ pub struct GithubTokenProvider {
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
-        let app_key_kms =
-            GcpKmsKeyVersion::new(&options.app_private_key_kms_path)
-                .await?;
-        Ok(GithubTokenProvider { options, app_key_kms })
+        let app_key_kms = GcpKmsKeyVersion::new(&options.app_private_key_kms_path).await?;
+        Ok(GithubTokenProvider {
+            options,
+            app_key_kms,
+        })
     }
 
     // TODO: return token as wrapper which prevents logging
-    pub async fn get_installation_access_token(
-        &self,
-        _permissions: Permissions,
-    ) -> Result<String> {
+    pub async fn get_installation_access_token(&self, _permissions: Permissions) -> Result<String> {
         let jwt = self.create_signed_jwt().await?;
         println!("Created JWT: {}", jwt);
         todo!()
@@ -55,21 +53,28 @@ impl GithubTokenProvider {
             // Issuer should be app's client id.
             iss: self.options.app_client_id.clone(),
             // Github recommends to set this 60 seconds in the past to avoid clock drift issues.
-            iat: unix_seconds_at(now.checked_sub(std::time::Duration::from_secs(60)).expect("Should never underflow")),
+            iat: unix_seconds_at(
+                now.checked_sub(std::time::Duration::from_secs(60))
+                    .expect("Should never underflow"),
+            ),
             // Maximum 10 minutes in the future, default to 5 minutes.
             // TODO: Maybe this should be part of options?
-            exp: unix_seconds_at(now.checked_add(std::time::Duration::from_secs(300)).expect("Should never overflow")),
+            exp: unix_seconds_at(
+                now.checked_add(std::time::Duration::from_secs(300))
+                    .expect("Should never overflow"),
+            ),
         };
 
-        let partial_jwt = format!("{}.{}",
+        let partial_jwt = format!(
+            "{}.{}",
             base64_url_encoded(&serde_json::to_vec(&header)?),
             base64_url_encoded(&serde_json::to_vec(&claims)?),
         );
-        let signature = self.app_key_kms.asymmetric_sign(partial_jwt.as_bytes()).await?;
-        let signed_jwt = format!("{}.{}",
-            partial_jwt,
-            base64_url_encoded(&signature),
-        );
+        let signature = self
+            .app_key_kms
+            .asymmetric_sign(partial_jwt.as_bytes())
+            .await?;
+        let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);
         Ok(signed_jwt)
     }
 }

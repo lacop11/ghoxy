@@ -19,26 +19,29 @@ struct Args {
     permissions: Vec<String>,
 }
 
-
 #[tokio::main]
 async fn main() {
     // TODO: Remove ring from all transitive deps and let it use aws-lc-rs by default automatically?
-    rustls::crypto::aws_lc_rs::default_provider().install_default().expect("Need default crypto provider");
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Need default crypto provider");
 
     let args = Args::parse();
 
-    let permissions = github_auth::Permissions::from_permission_list(&args.permissions).expect("Invalid permissions");
-    let github_token_provider = github_auth::GithubTokenProvider::from_options(
-        github_auth::GithubTokenProviderOptions {
+    let permissions = github_auth::Permissions::from_permission_list(&args.permissions)
+        .expect("Invalid permissions");
+    let github_token_provider =
+        github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
             app_client_id: args.app_client_id,
             app_private_key_kms_path: args.app_private_key_kms_path,
-        }
-    ).await.expect("Failed to create GithubTokenProvider");
+        })
+        .await
+        .expect("Failed to create GithubTokenProvider");
 
     let token = github_token_provider
-    .get_installation_access_token(permissions)
-    .await
-    .expect("Failed to get Github installation access token");
+        .get_installation_access_token(permissions)
+        .await
+        .expect("Failed to get Github installation access token");
 
     println!("Github token: {}", token);
 }
