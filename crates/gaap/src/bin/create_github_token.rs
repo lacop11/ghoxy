@@ -9,6 +9,10 @@ struct Args {
     #[arg(long)]
     app_client_id: String,
 
+    /// The GitHub App installation id.
+    #[arg(long)]
+    app_installation_id: String,
+
     /// Path to the GitHub App private key on GCP KMS.
     #[arg(long)]
     app_private_key_kms_path: String,
@@ -33,6 +37,7 @@ async fn main() {
     let github_token_provider =
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
             app_client_id: args.app_client_id,
+            app_installation_id: args.app_installation_id,
             app_private_key_kms_path: args.app_private_key_kms_path,
         })
         .await
@@ -43,5 +48,5 @@ async fn main() {
         .await
         .expect("Failed to get Github installation access token");
 
-    println!("Github token: {}", token);
+    println!("Github installation token: {}", token);
 }

@@ -4,17 +4,19 @@ use crate::{Permissions, Result};
 
 pub struct GithubTokenProviderOptions {
     pub app_client_id: String,
+    pub app_installation_id: String,
     pub app_private_key_kms_path: String,
 }
 
 pub struct GithubTokenProvider {
     options: GithubTokenProviderOptions,
     app_key_kms: GcpKmsKeyVersion,
-    // TODO: token caches
+    // TODO: token caches, keyed by permissions, should store expiration time so if too short we can refresh
 }
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
+        // TODO: Validate app_installation_id is numeric
         let app_key_kms = GcpKmsKeyVersion::new(&options.app_private_key_kms_path).await?;
         Ok(GithubTokenProvider {
             options,
@@ -24,9 +26,56 @@ impl GithubTokenProvider {
 
     // TODO: return token as wrapper which prevents logging
     pub async fn get_installation_access_token(&self, _permissions: Permissions) -> Result<String> {
+        // TODO: caching logic, this should only be called when we don't have a valid one or it
+        // is expiring soon, and have to store the response + block multiple concurrent calls for the
+        // same set of permissions to only do one request.
+        let (token, _expires_at) = self.create_installation_access_token().await?;
+        Ok(token)
+    }
+
+    // TODO: return token as wrapper which prevents logging
+    async fn create_installation_access_token(
+        &self,
+    ) -> Result<(String, chrono::DateTime<chrono::Utc>)> {
+        // Create new JWT token. We could cache this too, but this function is only called if we
+        // don't have a cached installation token, so there is already one layer of caching on
+        // top of this, no need to cache the JWT separately.
         let jwt = self.create_signed_jwt().await?;
-        println!("Created JWT: {}", jwt);
-        todo!()
+
+        // Exchange the JWT for an installation access token.
+        // Lifetime can't be controlled, it's always one hour.
+        // https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!(
+                "https://api.github.com/app/installations/{}/access_tokens",
+                self.options.app_installation_id
+            ))
+            .bearer_auth(jwt.as_str())
+            .header("Accept", "application/vnd.github+json")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            // TODO: make this repo path or something
+            .header("User-Agent", "gaap")
+            .send()
+            .await?;
+        // TODO body with permissions
+
+        #[derive(Debug, serde::Deserialize)]
+        struct InstallationTokenResponse {
+            token: String,
+            expires_at: chrono::DateTime<chrono::Utc>,
+        }
+
+        if response.status().is_success() {
+            let response: InstallationTokenResponse = response.json().await?;
+            return Ok((response.token, response.expires_at));
+        }
+
+        Err(crate::Error::GithubTokenRequestFailed(
+            response.status().as_u16(),
+            response.text().await?,
+        ))
     }
 
     // TODO: Isn't it weird this doesn't have any nonce or something?

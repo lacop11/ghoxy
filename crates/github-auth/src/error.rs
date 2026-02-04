@@ -8,6 +8,12 @@ pub enum Error {
 
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
+
+    #[error("HTTP request error: {0}")]
+    HttpRequestError(#[from] reqwest::Error),
+
+    #[error("Github token request failed with status code: {0}, message: {1}")]
+    GithubTokenRequestFailed(u16, String),
 }
 
 /// Result type for github-auth operations.
