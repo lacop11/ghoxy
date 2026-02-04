@@ -25,17 +25,17 @@ impl GithubTokenProvider {
     }
 
     // TODO: return token as wrapper which prevents logging
-    pub async fn get_installation_access_token(&self, _permissions: Permissions) -> Result<String> {
+    pub async fn get_installation_access_token(&self, permissions: &Permissions) -> Result<String> {
         // TODO: caching logic, this should only be called when we don't have a valid one or it
         // is expiring soon, and have to store the response + block multiple concurrent calls for the
         // same set of permissions to only do one request.
-        let (token, _expires_at) = self.create_installation_access_token().await?;
+        let (token, _expires_at) = self.create_installation_access_token(permissions).await?;
         Ok(token)
     }
 
     // TODO: return token as wrapper which prevents logging
     async fn create_installation_access_token(
-        &self,
+        &self, permissions: &Permissions,
     ) -> Result<(String, chrono::DateTime<chrono::Utc>)> {
         // Create new JWT token. We could cache this too, but this function is only called if we
         // don't have a cached installation token, so there is already one layer of caching on
@@ -45,7 +45,6 @@ impl GithubTokenProvider {
         // Exchange the JWT for an installation access token.
         // Lifetime can't be controlled, it's always one hour.
         // https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app
-
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
@@ -57,9 +56,11 @@ impl GithubTokenProvider {
             .header("X-GitHub-Api-Version", "2022-11-28")
             // TODO: make this repo path or something
             .header("User-Agent", "gaap")
+            .json(&serde_json::json!({
+            "permissions": permissions.to_json_map(),
+        }))
             .send()
             .await?;
-        // TODO body with permissions
 
         #[derive(Debug, serde::Deserialize)]
         struct InstallationTokenResponse {

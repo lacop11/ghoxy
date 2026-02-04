@@ -18,7 +18,8 @@ struct Args {
     app_private_key_kms_path: String,
 
     /// Comma-separated list of permissions to request, in the form <permission>:<access>,
-    /// for example "issues:read,contents:write".
+    /// for example "issues:read,contents:write". Must not be empty, and must be a subset
+    /// of the permissions granted to the app installation.
     #[arg(long, use_value_delimiter = true)]
     permissions: Vec<String>,
 }
@@ -44,7 +45,7 @@ async fn main() {
         .expect("Failed to create GithubTokenProvider");
 
     let token = github_token_provider
-        .get_installation_access_token(permissions)
+        .get_installation_access_token(&permissions)
         .await
         .expect("Failed to get Github installation access token");
 
