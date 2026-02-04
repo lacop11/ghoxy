@@ -5,6 +5,7 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
+gcp-kms-sign = { path = "../gcp-kms-sign" }
 jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }
 jwks = { version = "0.5.2", default-features = false, features = ["aws_lc_rs"] }
 serde = { version = "1.0.228", features = ["derive"] }

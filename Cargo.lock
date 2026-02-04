@@ -392,6 +392,7 @@ dependencies = [
  "clap",
  "client-auth",
  "gcp-kms-sign",
+ "github-auth",
  "rustls",
  "tokio",
 ]
@@ -466,6 +467,7 @@ name = "github-auth"
 version = "0.0.0"
 dependencies = [
  "base64",
+ "gcp-kms-sign",
  "jsonwebtoken",
  "jwks",
  "serde",

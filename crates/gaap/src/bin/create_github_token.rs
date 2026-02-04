@@ -11,11 +11,12 @@ struct Args {
 
     /// Path to the GitHub App private key on GCP KMS.
     #[arg(long)]
-    app_private_key: String,
+    app_private_key_kms_path: String,
 
-    /// Token lifetime in seconds (max 600s for GitHub).
-    #[arg(long, default_value_t = 600)]
-    token_lifetime_seconds: u32,
+    /// Comma-separated list of permissions to request, in the form <permission>:<access>,
+    /// for example "issues:read,contents:write".
+    #[arg(long, use_value_delimiter = true)]
+    permissions: Vec<String>,
 }
 
 
@@ -26,5 +27,18 @@ async fn main() {
 
     let args = Args::parse();
 
-    // TODO
+    let permissions = github_auth::Permissions::from_permission_list(&args.permissions).expect("Invalid permissions");
+    let github_token_provider = github_auth::GithubTokenProvider::from_options(
+        github_auth::GithubTokenProviderOptions {
+            app_client_id: args.app_client_id,
+            app_private_key_kms_path: args.app_private_key_kms_path,
+        }
+    ).await.expect("Failed to create GithubTokenProvider");
+
+    let token = github_token_provider
+    .get_installation_access_token(permissions)
+    .await
+    .expect("Failed to get Github installation access token");
+
+    println!("Github token: {}", token);
 }
