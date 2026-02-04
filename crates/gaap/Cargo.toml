@@ -10,8 +10,9 @@ client-auth = { path = "../client-auth" }
 
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 clap = { version = "4.5.54", features = ["derive"] }
-rustls = { version = "0.23.26", default-features=false, features = ["aws_lc_rs"] }
 
+# TODO: Avoid direct dependency, remove ring from all transitive deps instead?
+rustls = { version = "0.23.26", default-features=false, features = ["aws_lc_rs"] }
 
 [[bin]]
 name = "dump-client-token"

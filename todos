@@ -1,0 +1,28 @@
+- rename (ghoxy? some better unique/searchable name)
+- finish up docs
+  - security model
+  - config setup
+  - onboarding
+    - can do app manifest + callback to do the private key -> KMS without storing on disk?
+- implementation bits
+  - functionality
+    - github auth crate
+      - producing scoped down tokens, caching
+    - rules crate
+      - parsing and validating rules, evaluating if request is allowed
+    - main binary
+      - proxy, logging, background refresh stuff
+  - security
+    - review deps, reduce dependency tree
+    - stricter cargo deny config
+    - stricter rules for deny_unwrap etc
+  - improvements
+    - logging/tracing, gcp compatible structured logs, lb trace ids?
+    - kms audit logs (not working in sandbox for some reason)
+- production / deployment
+  - docker build, nix to do distroless image? noroot user, readonly fs etc
+  - TF deployment templates with KMS + audit logs + service + LB + alerts for errors/issues
+- testing
+  - unit tests where it makes sense
+  - e2e integration test on the sandbox org (need to deploy somewhere)
+  - config tester, syntax but also some static checks (must validate repo owner, stuff like that)

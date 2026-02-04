@@ -465,6 +465,7 @@ dependencies = [
 name = "github-auth"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "jsonwebtoken",
  "jwks",
  "serde",
