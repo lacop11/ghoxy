@@ -27,10 +27,12 @@ impl Permissions {
         }
 
         if scope_access_pairs.is_empty() {
-            return Err(crate::Error::EmptyPermissions)
+            return Err(crate::Error::EmptyPermissions);
         }
 
-        Ok(Permissions { scope_access_pairs: scope_access_pairs.into_iter().collect() })
+        Ok(Permissions {
+            scope_access_pairs: scope_access_pairs.into_iter().collect(),
+        })
     }
 
     pub fn to_json_map(&self) -> serde_json::Value {

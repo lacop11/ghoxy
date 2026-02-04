@@ -35,7 +35,8 @@ impl GithubTokenProvider {
 
     // TODO: return token as wrapper which prevents logging
     async fn create_installation_access_token(
-        &self, permissions: &Permissions,
+        &self,
+        permissions: &Permissions,
     ) -> Result<(String, chrono::DateTime<chrono::Utc>)> {
         // Create new JWT token. We could cache this too, but this function is only called if we
         // don't have a cached installation token, so there is already one layer of caching on
@@ -57,8 +58,8 @@ impl GithubTokenProvider {
             // TODO: make this repo path or something
             .header("User-Agent", "gaap")
             .json(&serde_json::json!({
-            "permissions": permissions.to_json_map(),
-        }))
+                "permissions": permissions.to_json_map(),
+            }))
             .send()
             .await?;
 

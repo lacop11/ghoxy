@@ -15,7 +15,9 @@ pub enum Error {
     #[error("Github token request failed with status code: {0}, message: {1}")]
     GithubTokenRequestFailed(u16, String),
 
-    #[error("No permissions specified, for security reasons all token requests must specify all requested permissions explicitly")]
+    #[error(
+        "No permissions specified, for security reasons all token requests must specify all requested permissions explicitly"
+    )]
     EmptyPermissions,
 
     #[error("Invalid permission requested: {0}")]
