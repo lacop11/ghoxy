@@ -19,6 +19,7 @@ all / structured ideas:
       - parsing and validating rules
       - evaluating if request is allowed and which rule applies
         - what if multiple apply? could be weird if it has distinct permissions, maybe some priority order?
+          - maybe can have identifier as path of url? eg rules/ folder with file some-rule -> can be used with baseurl=https://proxy/rule/some-rule/ (after this /orgs/foo/bar gets appended). This way client must specify as part of the base url override which rule they intend to use, removes ambiguity, also easier to find all usages of a rule
       - how to encode the rule config files? don't want yaml
         - CEL expression, needs to allow multiline
         - allow comments
@@ -26,7 +27,10 @@ all / structured ideas:
         - maybe toml would work but then have to do CEL escaping?
           - actually with multiline string this might be fine
     - main binary
-      - proxy, logging, background refresh stuff
+      - proxy
+      - logging
+        - every request must be carefully logged, don't leak any secrets in logs but have comprehensive audits
+      - background refresh stuff (or fix libs to do that internally)
     - client auth
       - remove need for caller to refresh jwks, do it internally
     - review all TODOs and clarify if they are blocking FIXMEs, nice to have TODOs or if they need security review attention
