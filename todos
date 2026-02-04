@@ -1,3 +1,10 @@
+next up / semi-sorted by priority:
+- crate for rules, minimal implementation (parse rules + find matching one)
+- implement the main webserver, basic flow for the proxy
+- test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
+- after all this works continue making improvements below
+
+all / structured ideas:
 - rename (ghoxy? some better unique/searchable name)
 - finish up docs
   - security model
@@ -7,11 +14,22 @@
 - implementation bits
   - functionality
     - github auth crate
-      - producing scoped down tokens, caching
+      - caching, deduped cache refresh on miss or when expiring soon
     - rules crate
-      - parsing and validating rules, evaluating if request is allowed
+      - parsing and validating rules
+      - evaluating if request is allowed and which rule applies
+        - what if multiple apply? could be weird if it has distinct permissions, maybe some priority order?
+      - how to encode the rule config files? don't want yaml
+        - CEL expression, needs to allow multiline
+        - allow comments
+        - list of scopes and routes / regexes, also multiling
+        - maybe toml would work but then have to do CEL escaping?
+          - actually with multiline string this might be fine
     - main binary
       - proxy, logging, background refresh stuff
+    - client auth
+      - remove need for caller to refresh jwks, do it internally
+    - review all TODOs and clarify if they are blocking FIXMEs, nice to have TODOs or if they need security review attention
   - security
     - review deps, reduce dependency tree
     - stricter cargo deny config
@@ -26,3 +44,4 @@
   - unit tests where it makes sense
   - e2e integration test on the sandbox org (need to deploy somewhere)
   - config tester, syntax but also some static checks (must validate repo owner, stuff like that)
+- get external reviews (team + security audit)
