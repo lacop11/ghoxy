@@ -43,5 +43,10 @@ all / structured ideas:
 - testing
   - unit tests where it makes sense
   - e2e integration test on the sandbox org (need to deploy somewhere)
+  - mock integration tests
+    - allow overriding github api url + kms server url, so it can be a mocked localhost server
   - config tester, syntax but also some static checks (must validate repo owner, stuff like that)
 - get external reviews (team + security audit)
+- nice to haves
+  - precommit (how to make it work with nix flake setup nicely?)
+  - improve docs, require doc strings
