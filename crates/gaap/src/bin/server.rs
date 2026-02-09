@@ -11,8 +11,17 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() {
+    // TODO
+    // tracing_subscriber::fmt::init();
 
     let args = Args::parse();
-    todo!()
+
+    let app = axum::Router::new().route("/health", axum::routing::get(health));
+    let listener = tokio::net::TcpListener::bind(args.address).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn health() -> &'static str {
+    "OK"
 }
