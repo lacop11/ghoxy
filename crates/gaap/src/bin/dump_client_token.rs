@@ -36,7 +36,7 @@ async fn main() {
 
     let validator = client_auth::TokenValidator::from_options(client_auth::TokenValidatorOptions {
         expected_audience: args.expected_audience,
-        allowed_issuers: dbg!(args.allowed_issuers),
+        allowed_issuers: args.allowed_issuers,
         token_age_leeway_seconds: args.token_age_leeway_seconds,
     });
 
