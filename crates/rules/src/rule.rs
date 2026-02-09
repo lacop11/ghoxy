@@ -1,5 +1,5 @@
 use crate::Result;
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct Rule {
@@ -39,11 +39,14 @@ impl Rule {
         // - should pass for some example claims (doesn't matter if true/false but not crash)
         Ok(Rule {
             claims: cel::Program::compile(&rule_file.claims)?,
-            rest: check_not_empty(rule_file
-                .rest
-                .into_iter()
-                .map(RuleRest::from_rule_file_rest)
-                .collect::<Result<Vec<_>>>()?, crate::Error::NoRulesSpecified)?,
+            rest: check_not_empty(
+                rule_file
+                    .rest
+                    .into_iter()
+                    .map(RuleRest::from_rule_file_rest)
+                    .collect::<Result<Vec<_>>>()?,
+                crate::Error::NoRulesSpecified,
+            )?,
         })
     }
 
@@ -147,15 +150,26 @@ mod tests {
             known: None,
             raw_claims: serde_json::json!({}),
         };
-        let permissions = rule.check_rest_request(&claims, &ApiMethod::Get, "/foo").unwrap();
-        assert_eq!(permissions, Some(github_auth::Permissions::from_permission_list(&["repo:read".to_string()]).unwrap()));
+        let permissions = rule
+            .check_rest_request(&claims, &ApiMethod::Get, "/foo")
+            .unwrap();
+        assert_eq!(
+            permissions,
+            Some(
+                github_auth::Permissions::from_permission_list(&["repo:read".to_string()]).unwrap()
+            )
+        );
 
         // Not allowed because of method.
-        let permissions = rule.check_rest_request(&claims, &ApiMethod::Post, "/foo").unwrap();
+        let permissions = rule
+            .check_rest_request(&claims, &ApiMethod::Post, "/foo")
+            .unwrap();
         assert_eq!(permissions, None);
 
         // Not allowed because of path.
-        let permissions = rule.check_rest_request(&claims, &ApiMethod::Get, "/bar").unwrap();
+        let permissions = rule
+            .check_rest_request(&claims, &ApiMethod::Get, "/bar")
+            .unwrap();
         //assert_eq!(permissions, None);
         // TODO: not implemented yet!
     }
