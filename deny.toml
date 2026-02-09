@@ -16,3 +16,12 @@ allow = [
     # TODO: Maybe we can avoid openssl dependency entirely and just use rustls?
     "OpenSSL",
 ]
+
+[advisories]
+ignore = [
+    # Unmaintained crate via transitive dependency.
+    # Already replaced in https://github.com/cel-rust/cel-rust/commit/9a75f9f3ca4d2547277924b5ae4e12610019b5ea
+    # Just need to wait for new release of `cel` crate to pull in the fix.
+    # FIXME: Remove.
+    "RUSTSEC-2024-0436",
+]
