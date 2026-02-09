@@ -26,6 +26,13 @@ pub enum Error {
 
     #[error("Ambiguous rule: multiple rules match the same request")]
     AmbiguousRule,
+
+    #[error("Invalid rule: Empty path list")]
+    EmptyPathList,
+    #[error("Invalid rule: Empty method list")]
+    EmptyMethodList,
+    #[error("Invalid rule: No REST or GraphQL rules specified")]
+    NoRulesSpecified,
 }
 
 /// Result type for rules operations.

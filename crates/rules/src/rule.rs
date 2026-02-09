@@ -1,5 +1,5 @@
 use crate::Result;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 #[derive(Debug)]
 pub struct Rule {
@@ -39,11 +39,11 @@ impl Rule {
         // - should pass for some example claims (doesn't matter if true/false but not crash)
         Ok(Rule {
             claims: cel::Program::compile(&rule_file.claims)?,
-            rest: rule_file
+            rest: check_not_empty(rule_file
                 .rest
                 .into_iter()
                 .map(RuleRest::from_rule_file_rest)
-                .collect::<Result<Vec<_>>>()?,
+                .collect::<Result<Vec<_>>>()?, crate::Error::NoRulesSpecified)?,
         })
     }
 
@@ -89,15 +89,16 @@ impl Rule {
 impl RuleRest {
     fn from_rule_file_rest(rest: internal::RuleRest) -> Result<Self> {
         Ok(RuleRest {
-            methods: rest.methods,
+            methods: check_not_empty(rest.methods, crate::Error::EmptyMethodList)?,
             // TODO: Validate the paths, maybe pre-compile into some mathing form (eg. Vec<Enum(Literal/Wildcard)> for each segment)
             // TODO: validate no overlap / ambiguity / duplicatio? can we do reliably at this point, or only
             // at rule evaluation time? (no early exit, check all and fail if multiple match)
-            paths: rest.routes,
+            paths: check_not_empty(rest.routes, crate::Error::EmptyPathList)?,
             permissions: github_auth::Permissions::from_permission_list(&rest.permissions)?,
         })
     }
 }
+
 // Raw format for deserializing the rule files, requires more validation
 // and transforms into the public Rule struct.
 mod internal {
@@ -107,6 +108,7 @@ mod internal {
     #[derive(Debug, Deserialize)]
     pub(crate) struct Rule {
         pub claims: String,
+        #[serde(default)]
         pub rest: Vec<RuleRest>,
     }
 
@@ -116,6 +118,13 @@ mod internal {
         pub routes: Vec<String>,
         pub permissions: Vec<String>,
     }
+}
+
+fn check_not_empty<T>(list: Vec<T>, err: crate::Error) -> Result<Vec<T>> {
+    if list.is_empty() {
+        return Err(err);
+    }
+    Ok(list)
 }
 
 #[cfg(test)]
@@ -151,5 +160,53 @@ mod tests {
         // TODO: not implemented yet!
     }
 
+    #[test]
+    fn test_bad_rule() {
+        // Invalid CEL.
+        let rule_str = r#"
+            claims = "syntax error"
+            [[rest]]
+            methods = ["GET"]
+            routes = ["/foo"]
+            permissions = ["repo:read"]
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
+        // No rules.
+        let rule_str = r#"
+            claims = "true"
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
+        // No methods.
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = []
+            routes = ["/foo"]
+            permissions = ["repo:read"]
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
+        // No routes.
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = []
+            permissions = ["repo:read"]
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
+        // No permissions.
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = ["/foo"]
+            permissions = []
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+    }
     // TODO: check CEL programs
 }
