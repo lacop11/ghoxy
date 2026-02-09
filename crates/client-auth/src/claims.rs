@@ -3,7 +3,7 @@ use crate::Result;
 /// Validated and parsed JWT claims.
 ///
 /// Has special handling for known issuers.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct Claims {
     /// Parsed and validated claims from known issuers, if applicable.
     pub known: Option<KnownClaims>,
@@ -11,7 +11,7 @@ pub struct Claims {
     pub raw_claims: serde_json::Value,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub enum KnownClaims {
     GoogleServiceAccount(GoogleServiceAccountClaims),
     GithubActions(GithubActionsClaims),
@@ -21,7 +21,7 @@ pub enum KnownClaims {
 ///
 /// Refer to https://docs.cloud.google.com/docs/authentication/token-types#sa-id-tokens
 /// Must be obtained with the include_email option enabled.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct GoogleServiceAccountClaims {
     /// Verified email of the service account.
     pub verified_email: String,
@@ -88,7 +88,7 @@ impl GoogleServiceAccountClaims {
 /// Parsed GitHub Actions OIDC token claims.
 ///
 /// Refer to https://docs.github.com/en/actions/reference/security/oidc
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct GithubActionsClaims {
     // TODO: Add docs for the fields.
     pub actor: String,

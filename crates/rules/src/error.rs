@@ -14,6 +14,18 @@ pub enum Error {
 
     #[error("Invalid github permisssions: {0}")]
     InvalidGithubPermissions(#[from] github_auth::Error),
+
+    #[error("CEL serialization error: {0}")]
+    CelSerializationError(#[from] cel::SerializationError),
+
+    #[error("Invalid CEL value: {0:?}, expected bool")]
+    InvalidCelValue(cel::Value),
+
+    #[error("CEL execution error: {0}")]
+    CelExecutionError(#[from] cel::ExecutionError),
+
+    #[error("Ambiguous rule: multiple rules match the same request")]
+    AmbiguousRule,
 }
 
 /// Result type for rules operations.
