@@ -28,6 +28,10 @@ pub enum ApiMethod {
 impl Rule {
     pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
+        Rule::from_str(&content)
+    }
+
+    fn from_str(content: &str) -> Result<Self> {
         let rule_file: internal::Rule = toml::from_str(&content)?;
 
         // TODO: validate the cel rule:
@@ -112,4 +116,40 @@ mod internal {
         pub routes: Vec<String>,
         pub permissions: Vec<String>,
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_rule() {
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = ["/foo"]
+            permissions = ["repo:read"]
+        "#;
+        let rule = Rule::from_str(rule_str).unwrap();
+
+        // Allowed.
+        let claims = client_auth::Claims {
+            known: None,
+            raw_claims: serde_json::json!({}),
+        };
+        let permissions = rule.check_rest_request(&claims, &ApiMethod::Get, "/foo").unwrap();
+        assert_eq!(permissions, Some(github_auth::Permissions::from_permission_list(&["repo:read".to_string()]).unwrap()));
+
+        // Not allowed because of method.
+        let permissions = rule.check_rest_request(&claims, &ApiMethod::Post, "/foo").unwrap();
+        assert_eq!(permissions, None);
+
+        // Not allowed because of path.
+        let permissions = rule.check_rest_request(&claims, &ApiMethod::Get, "/bar").unwrap();
+        //assert_eq!(permissions, None);
+        // TODO: not implemented yet!
+    }
+
+    // TODO: check CEL programs
 }
