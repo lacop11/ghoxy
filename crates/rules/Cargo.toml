@@ -1,0 +1,14 @@
+[package]
+name = "rules"
+license = "MIT OR Apache-2.0"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+client-auth = { path = "../client-auth" }
+github-auth = { path = "../github-auth" }
+
+
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.17"
+toml = "0.9.11"

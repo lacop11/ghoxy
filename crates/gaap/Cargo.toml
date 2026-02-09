@@ -8,6 +8,7 @@ edition = "2024"
 gcp-kms-sign = { path = "../gcp-kms-sign" }
 client-auth = { path = "../client-auth" }
 github-auth = { path = "../github-auth" }
+rules = { path = "../rules" }
 
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 clap = { version = "4.5.54", features = ["derive"] }
@@ -22,3 +23,7 @@ path = "src/bin/dump_client_token.rs"
 [[bin]]
 name = "create-github-token"
 path = "src/bin/create_github_token.rs"
+
+[[bin]]
+name = "check-rule"
+path = "src/bin/check_rule.rs"
