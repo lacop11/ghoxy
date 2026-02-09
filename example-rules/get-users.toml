@@ -6,8 +6,13 @@ claims = """
 """
 
 # A single allow rule.
-[[allow]]
-
+[[rest]]
+# Can allow multiple methods, if we eg. want to allow read+write access at once.
+methods = ["GET"]
+# The paths can have placeholders, or we could restrict to a single organization by
+# replacing {org} with the actual org name.
+# TODO: uniquness requirements here? validate no overlap, no ambiguous matches etc
+routes = ["/orgs/{org}/members"]
 # This route only needs members:read permission on github side.
 # Technically given the restricted route we could also give other permissions and they
 # could not be used for anything, but it is better to only allow the minimum necessary permissions.
@@ -15,9 +20,5 @@ permissions = [
     "members:read",
 ]
 
-# For this rule we allow a single route.
-[[allow.rest]]
-method = "GET"
-# The path can have placeholders, or we could restrict to a single organization by
-# replacing {org} with the actual org name.
-path = "/orgs/{org}/members"
+# TODO: more test cases for multiple rules, routes, methods
+# TODO: graphql rule support

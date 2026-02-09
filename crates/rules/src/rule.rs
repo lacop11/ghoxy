@@ -4,20 +4,17 @@ use serde::Deserialize;
 #[derive(Debug)]
 pub struct Rule {
     claims: cel::Program,
-    allow: Vec<RuleAllow>,
-}
-
-#[derive(Debug)]
-pub struct RuleAllow {
-    permissions: github_auth::Permissions,
-    rest: Vec<RuleAllowRest>,
+    rest: Vec<RuleRest>,
     // TODO: graphql allow rules.
 }
 
 #[derive(Debug)]
-pub struct RuleAllowRest {
-    method: ApiMethod,
-    path: String,
+pub struct RuleRest {
+    // TODO enumset?
+    methods: Vec<ApiMethod>,
+    // TODO: parsed segmented representation
+    paths: Vec<String>,
+    permissions: github_auth::Permissions,
 }
 
 #[derive(Debug, Deserialize)]
@@ -31,42 +28,31 @@ pub enum ApiMethod {
 impl Rule {
     pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
-        let rule_file: internal::RuleFile = toml::from_str(&content)?;
+        let rule_file: internal::Rule = toml::from_str(&content)?;
 
         Ok(Rule {
             claims: cel::Program::compile(&rule_file.claims)?,
-            allow: rule_file
-                .allow
-                .into_iter()
-                .map(RuleAllow::from_rule_file_allow)
-                .collect::<Result<Vec<_>>>()?,
-        })
-    }
-}
-
-impl RuleAllow {
-    fn from_rule_file_allow(allow: internal::RuleFileAllow) -> Result<Self> {
-        Ok(RuleAllow {
-            permissions: github_auth::Permissions::from_permission_list(&allow.permissions)?,
-            rest: allow
+            rest: rule_file
                 .rest
                 .into_iter()
-                .map(RuleAllowRest::from_rule_file_allow_rest)
+                .map(RuleRest::from_rule_file_rest)
                 .collect::<Result<Vec<_>>>()?,
         })
     }
 }
 
-impl RuleAllowRest {
-    fn from_rule_file_allow_rest(allow_rest: internal::RuleFileAllowRest) -> Result<Self> {
-        // TODO: Validate the path, maybe pre-compile into some mathing form (eg. Vec<Enum(Literal/Wildcard)> for each segment)
-        Ok(RuleAllowRest {
-            method: allow_rest.method,
-            path: allow_rest.path,
+impl RuleRest {
+    fn from_rule_file_rest(rest: internal::RuleRest) -> Result<Self> {
+        Ok(RuleRest {
+            methods: rest.methods,
+            // TODO: Validate the paths, maybe pre-compile into some mathing form (eg. Vec<Enum(Literal/Wildcard)> for each segment)
+            // TODO: validate no overlap / ambiguity / duplicatio? can we do reliably at this point, or only
+            // at rule evaluation time? (no early exit, check all and fail if multiple match)
+            paths: rest.routes,
+            permissions: github_auth::Permissions::from_permission_list(&rest.permissions)?,
         })
     }
 }
-
 // Raw format for deserializing the rule files, requires more validation
 // and transforms into the public Rule struct.
 mod internal {
@@ -74,21 +60,16 @@ use serde::Deserialize;
 use super::ApiMethod;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RuleFile {
+pub(crate) struct Rule {
     pub claims: String,
-    pub allow: Vec<RuleFileAllow>,
+    pub rest: Vec<RuleRest>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RuleFileAllow {
+pub(crate) struct RuleRest {
+    pub methods: Vec<ApiMethod>,
+    pub routes: Vec<String>,
     pub permissions: Vec<String>,
-    pub rest: Vec<RuleFileAllowRest>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct RuleFileAllowRest {
-    pub method: ApiMethod,
-    pub path: String,
 }
 
 }
