@@ -8,6 +8,12 @@ pub enum Error {
 
     #[error("Config deserialization error: {0}")]
     DeserializationError(#[from] toml::de::Error),
+
+    #[error("CEL parse errors: {0}")]
+    CelParseError(#[from] cel::ParseErrors),
+
+    #[error("Invalid github permisssions: {0}")]
+    InvalidGithubPermissions(#[from] github_auth::Error),
 }
 
 /// Result type for rules operations.

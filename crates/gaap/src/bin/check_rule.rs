@@ -19,6 +19,5 @@ fn main() {
             std::process::exit(1);
         }
     };
-
-    dbg!("Parsed rule: {:#?}", rule);
+    dbg!("Successfully parsed rule file: {:#?}", rule);
 }
