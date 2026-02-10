@@ -32,7 +32,7 @@ impl Rule {
     }
 
     fn from_str(content: &str) -> Result<Self> {
-        let rule_file: internal::Rule = toml::from_str(&content)?;
+        let rule_file: internal::Rule = toml::from_str(content)?;
 
         // TODO: validate the cel rule:
         // - should reference some claims
@@ -80,6 +80,8 @@ impl Rule {
                 continue;
             }
             // TODO: check the path match including wildcards
+            let _ = rest_rule.paths;
+            let _ = path;
             if matching_rest_rule.is_some() {
                 return Err(crate::Error::AmbiguousRule);
             }

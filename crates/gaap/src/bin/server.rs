@@ -12,12 +12,16 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    // TODO
-    // tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
 
     let args = Args::parse();
 
-    let app = axum::Router::new().route("/health", axum::routing::get(health));
+    let app = axum::Router::new()
+        .route("/health", axum::routing::get(health))
+        // TODO: Better tracing (custom layer that logs the relevant bits with masked secrets?)
+        .layer(tower_http::trace::TraceLayer::new_for_http());
     let listener = tokio::net::TcpListener::bind(args.address).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
