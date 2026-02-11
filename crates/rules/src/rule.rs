@@ -11,7 +11,7 @@ pub struct Rule {
 #[derive(Debug)]
 pub struct RuleRest {
     // TODO enumset?
-    methods: Vec<ApiMethod>,
+    methods: Vec<RestMethod>,
     // TODO: parsed segmented representation
     paths: Vec<String>,
     permissions: github_auth::Permissions,
@@ -19,7 +19,7 @@ pub struct RuleRest {
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
-pub enum ApiMethod {
+pub enum RestMethod {
     // TODO: More methods as needed.
     Get,
     Post,
@@ -65,7 +65,7 @@ impl Rule {
     pub fn check_rest_request(
         &self,
         claims: &client_auth::Claims,
-        method: &ApiMethod,
+        method: &RestMethod,
         path: &str,
     ) -> Result<Option<github_auth::Permissions>> {
         if !self.check_claims(claims)? {
@@ -107,7 +107,7 @@ impl RuleRest {
 // Raw format for deserializing the rule files, requires more validation
 // and transforms into the public Rule struct.
 mod internal {
-    use super::ApiMethod;
+    use super::RestMethod;
     use serde::Deserialize;
 
     #[derive(Debug, Deserialize)]
@@ -119,7 +119,7 @@ mod internal {
 
     #[derive(Debug, Deserialize)]
     pub(crate) struct RuleRest {
-        pub methods: Vec<ApiMethod>,
+        pub methods: Vec<RestMethod>,
         pub routes: Vec<String>,
         pub permissions: Vec<String>,
     }
@@ -153,7 +153,7 @@ mod tests {
             raw_claims: serde_json::json!({}),
         };
         let permissions = rule
-            .check_rest_request(&claims, &ApiMethod::Get, "/foo")
+            .check_rest_request(&claims, &RestMethod::Get, "/foo")
             .unwrap();
         assert_eq!(
             permissions,
@@ -164,13 +164,13 @@ mod tests {
 
         // Not allowed because of method.
         let permissions = rule
-            .check_rest_request(&claims, &ApiMethod::Post, "/foo")
+            .check_rest_request(&claims, &RestMethod::Post, "/foo")
             .unwrap();
         assert_eq!(permissions, None);
 
         // Not allowed because of path.
         let permissions = rule
-            .check_rest_request(&claims, &ApiMethod::Get, "/bar")
+            .check_rest_request(&claims, &RestMethod::Get, "/bar")
             .unwrap();
         //assert_eq!(permissions, None);
         // TODO: not implemented yet!

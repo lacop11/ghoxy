@@ -33,6 +33,9 @@ pub enum Error {
     EmptyMethodList,
     #[error("Invalid rule: No REST or GraphQL rules specified")]
     NoRulesSpecified,
+
+    #[error("Rule directory must only contain files named rule-name.toml")]
+    InvalidRuleDirectoryEntry,
 }
 
 /// Result type for rules operations.
