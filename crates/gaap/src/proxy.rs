@@ -2,15 +2,22 @@ use axum::http::Request;
 use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
+use rules::RuleSet;
+
+pub struct ProxyOptions {
+    pub ruleset_dir: std::path::PathBuf,
+}
 
 pub struct Proxy {
-    // ruleset: crate::rules::RuleSet,
+    ruleset: RuleSet,
 }
 
 impl Proxy {
-    // pub async fn new(options: ProxyOptions) -> Result<Self> {
-    //     Proxy { ruleset }
-    // }
+    pub async fn new(options: ProxyOptions) -> Result<Self> {
+        Ok(Proxy {
+            ruleset: RuleSet::from_directory(options.ruleset_dir)?
+        })
+    }
 
     // Note on the weird "+ use<>", this is to prevent capturing self lifetime by default.
     // See https://blog.rust-lang.org/2024/09/05/impl-trait-capture-rules/#impl-traits-can-include-a-use-bound-to-specify-precisely-which-generic-types-and-lifetimes-they-use
@@ -28,7 +35,7 @@ impl Proxy {
         let first_segment = path.split('/').next().ok_or(Error::InvalidRequestPath)?;
         // Note: this allows enumeration of valid rule names via response code and timing.
         // Does not seem like a concern so it's intentionally not addressed.
-        // TODO rule = self.ruleset.get_rule(first_segment).ok_or(Error::NoSuchRule(first_segment.to_string()))?;
+        let rule = self.ruleset.get_rule(first_segment).ok_or(Error::NoSuchRule(first_segment.to_string()))?;
 
         // For github terraform provider, if we override the base URL, it assumes we are using GHES
         // and changes the paths like this:

@@ -5,6 +5,12 @@ use thiserror::Error;
 pub enum Error {
     #[error("Invalid request path")]
     InvalidRequestPath,
+
+    #[error("Invalid rules: {0}")]
+    InvalidRules(#[from] rules::Error),
+
+    #[error("No such rule: {0}")]
+    NoSuchRule(String),
 }
 
 /// Result type for proxy operations.

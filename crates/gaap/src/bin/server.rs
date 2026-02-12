@@ -13,6 +13,9 @@ use std::{net::SocketAddr, sync::Arc};
 struct Args {
     #[arg(long, default_value = "127.0.0.1:3000")]
     address: SocketAddr,
+
+    #[arg(long, required = true)]
+    ruleset_dir: std::path::PathBuf,
 }
 
 #[tokio::main]
@@ -23,7 +26,9 @@ async fn main() {
 
     let args = Args::parse();
 
-    let proxy = Proxy {};
+    let proxy = Proxy::new(gaap::proxy::ProxyOptions {
+        ruleset_dir: args.ruleset_dir,
+    }).await.expect("Failed to initialize proxy");
 
     // TODO: add tracing + compression middleware?
     let app = axum::Router::new()
