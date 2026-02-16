@@ -26,8 +26,20 @@ async fn main() {
 
     let args = Args::parse();
 
+    let token_validator = client_auth::TokenValidator::from_options(client_auth::TokenValidatorOptions {
+        expected_audience: "https://gaap.example.com".to_string(),
+        allowed_issuers: vec![
+            "https://accounts.google.com".to_string(),
+            "https://token.actions.githubusercontent.com".to_string(),
+        ],
+        token_age_leeway_seconds: 60,
+    });
+    // FIXME: this needs to be done periodically, ideally automatically.
+    token_validator.update_jwks().await.expect("Failed to fetch JWKS");
+
     let proxy = Proxy::new(gaap::proxy::ProxyOptions {
         ruleset_dir: args.ruleset_dir,
+        token_validator,
     }).await.expect("Failed to initialize proxy");
 
     // TODO: add tracing + compression middleware?

@@ -6,16 +6,19 @@ use rules::RuleSet;
 
 pub struct ProxyOptions {
     pub ruleset_dir: std::path::PathBuf,
+    pub token_validator: client_auth::TokenValidator,
 }
 
 pub struct Proxy {
     ruleset: RuleSet,
+    token_validator: client_auth::TokenValidator,
 }
 
 impl Proxy {
     pub async fn new(options: ProxyOptions) -> Result<Self> {
         Ok(Proxy {
-            ruleset: RuleSet::from_directory(options.ruleset_dir)?
+            ruleset: RuleSet::from_directory(options.ruleset_dir)?,
+            token_validator: options.token_validator,
         })
     }
 
@@ -25,6 +28,14 @@ impl Proxy {
         // TODO: proper tracing. we can't log full request/response, only the safe metadata
         // method+url for request should be ok
         dbg!(&req);
+
+        // Extract JWT from auth header and check the claims.
+        // This does not indicate the client is trusted but we can reject completely invalid tokens early.
+        // Also, if the token is valid and from the trusted issuers we at least know the client's identity,
+        // so if there is abuse we can tie them to a GCP service account or github user/org to investigate.
+        let token = extract_bearer_token(&req)?;
+        let claims = self.token_validator.validate(&token).await?;
+        dbg!(&claims);
 
         // First part of the path is the rule the client intends to use.
         let path = req
@@ -55,6 +66,10 @@ impl Proxy {
             return Err(Error::InvalidRequestPath);
         }
 
+        // Check if user's provided claims allow them to use this rule at all,
+        // and if yes find the subset of permissions that we should get a token for.
+        // let permissions = match rule.check_rest_request(claims, method, path)
+
         // TODO get token claims
         // TODO validate against rule
         // TODO find permissions for route based on method+path, if allowed
@@ -69,4 +84,16 @@ impl Proxy {
 enum ApiPath {
     Rest(String),
     Graphql,
+}
+
+fn extract_bearer_token(req: &Request<Body>) -> Result<String> {
+    let auth_header = req
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .ok_or(Error::MissingAuthorizationHeader)?;
+    let auth_str = auth_header.to_str().map_err(|_| Error::InvalidAuthorizationHeader)?;
+    let token = auth_str
+        .strip_prefix("Bearer ")
+        .ok_or(Error::InvalidAuthorizationHeader)?;
+    Ok(token.to_string())
 }

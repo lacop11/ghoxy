@@ -11,6 +11,14 @@ pub enum Error {
 
     #[error("No such rule: {0}")]
     NoSuchRule(String),
+
+    #[error("Token validation error: {0}")]
+    TokenValidationError(#[from] client_auth::Error),
+
+    #[error("Missing authorization header")]
+    MissingAuthorizationHeader,
+    #[error("Invalid authorization header")]
+    InvalidAuthorizationHeader,
 }
 
 /// Result type for proxy operations.
