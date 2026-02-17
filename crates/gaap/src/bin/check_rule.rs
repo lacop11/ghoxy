@@ -20,4 +20,5 @@ fn main() {
         }
     };
     dbg!("Successfully parsed rule file: {:#?}", rule);
+    // TODO: needs implementation for the inputs (path/method/claims) and actual checks...
 }

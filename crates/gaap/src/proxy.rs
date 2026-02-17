@@ -4,6 +4,7 @@ use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
 use rules::{RestMethod, RuleSet};
+use tracing::info;
 
 pub struct ProxyOptions {
     pub ruleset_dir: std::path::PathBuf,
@@ -32,9 +33,10 @@ impl Proxy {
     // Note on the weird "+ use<>", this is to prevent capturing self lifetime by default.
     // See https://blog.rust-lang.org/2024/09/05/impl-trait-capture-rules/#impl-traits-can-include-a-use-bound-to-specify-precisely-which-generic-types-and-lifetimes-they-use
     pub async fn handle_request(&self, req: Request<Body>) -> Result<impl IntoResponse + use<>> {
-        // TODO: proper tracing. we can't log full request/response, only the safe metadata
-        // method+url for request should be ok
-        dbg!(&req);
+        // TODO: Better trace logging, what is safe to log? URL always safe, no secrets? Can we log some headers
+        // (not the token!), and maybe the body (if not too big, no sensitive fields), especially for graphql
+        // query we should log it.
+        info!(method = ?req.method(), uri = ?req.uri(), "Handling request");
 
         // Extract JWT from auth header and check the claims.
         // This does not indicate the client is trusted but we can reject completely invalid tokens early.
@@ -42,7 +44,7 @@ impl Proxy {
         // so if there is abuse we can tie them to a GCP service account or github user/org to investigate.
         let token = extract_bearer_token(&req)?;
         let claims = self.client_token_validator.validate(&token).await?;
-        dbg!(&claims);
+        info!(claims = ?claims, "Claims parsed and valid (not yet trusted)");
 
         // First part of the path is the rule the client intends to use.
         let path = req
@@ -82,7 +84,7 @@ impl Proxy {
                 Some(p) => p,
                 None => return Err(Error::RequestNotAllowedByRule),
             };
-            dbg!(&permissions);
+            info!(rule = first_segment, permissions = ?permissions, "Request allowed by rule");
 
             // Obtain token with the required permissions. This is cached, will only
             // create a new token if we don't have one with long enough remaining lifetime.
@@ -90,7 +92,6 @@ impl Proxy {
                 .github_token_provider
                 .get_installation_access_token(&permissions)
                 .await?;
-            dbg!(&github_token);
 
             let full_request_url = format!("{}{}", self.github_base_url, api_path);
             return proxy_validated_github_rest_request(
@@ -145,6 +146,7 @@ async fn proxy_validated_github_rest_request(
 
     // TODO send body, if any.
     let response = req_builder.send().await?;
+    info!(path=path, method=?method, status=?response.status(), "Received response from github");
     let response_builder = Response::builder().status(response.status());
     // TODO: do we need to return any headers?
     Ok(response_builder.body(Body::from_stream(response.bytes_stream()))?)

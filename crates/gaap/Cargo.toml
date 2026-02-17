@@ -12,7 +12,7 @@ rules = { path = "../rules" }
 
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 clap = { version = "4.5.54", features = ["derive"] }
-tracing-subscriber = { version = "0.3.22", features = ["fmt"] }
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
 axum = "0.8.8"
 tracing = "0.1.44"
 tower-http = {version = "0.6.8", features = ["trace"] }

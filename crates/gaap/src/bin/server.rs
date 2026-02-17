@@ -7,6 +7,8 @@ use axum::response::IntoResponse;
 use clap::Parser;
 use gaap::proxy::Proxy;
 use std::{net::SocketAddr, sync::Arc};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -47,8 +49,14 @@ async fn main() {
         .install_default()
         .expect("Need default crypto provider");
 
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+    // TODO: request tracing? how to attach unique traceid to all logs for a given request?
+    tracing_subscriber::registry()
+        .with(
+            // Allow overriding log levels with RUST_LOG. Some sensible defaults.
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .with(tracing_subscriber::fmt::layer())
         .init();
 
     let args = Args::parse();
