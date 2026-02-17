@@ -54,6 +54,7 @@ impl Rule {
         let mut context = cel::Context::default();
         context.add_variable("claims", &claims.known)?;
         context.add_variable("raw_claims", &claims.raw_claims)?;
+        dbg!("checking!", &claims.known, &claims.raw_claims, claims, &self.claims);
         match self.claims.execute(&context)? {
             cel::Value::Bool(b) => Ok(b),
             val => Err(crate::Error::InvalidCelValue(val)),

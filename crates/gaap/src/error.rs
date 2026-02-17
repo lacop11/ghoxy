@@ -19,6 +19,14 @@ pub enum Error {
     MissingAuthorizationHeader,
     #[error("Invalid authorization header")]
     InvalidAuthorizationHeader,
+
+    #[error("Unsupported HTTP method: {0}")]
+    UnsupportedHttpMethod(String),
+    #[error("Unsupported GraphQL method")]
+    UnsupportedGraphqlMethod,
+
+    #[error("Request not allowed by rule")]
+    RequestNotAllowedByRule,
 }
 
 /// Result type for proxy operations.

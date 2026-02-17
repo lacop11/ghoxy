@@ -2,7 +2,7 @@ use axum::http::Request;
 use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
-use rules::RuleSet;
+use rules::{RestMethod, RuleSet};
 
 pub struct ProxyOptions {
     pub ruleset_dir: std::path::PathBuf,
@@ -53,37 +53,35 @@ impl Proxy {
         //   /some/rest/route -> /api/v3/some/rest/route
         //   /graphql         -> /api/graphql
         // Rewrite back to what the path would be on api.github.com.
-        let api_path;
         let remaining_path = path
             .strip_prefix(first_segment)
             .ok_or(Error::InvalidRequestPath)?;
 
         if let Some(rest_path) = remaining_path.strip_prefix("/api/v3/") {
-            api_path = ApiPath::Rest(format!("/{}", rest_path));
+            let api_path = format!("/{}", rest_path);
+            let api_method = match req.method() {
+                &axum::http::Method::GET => RestMethod::Get,
+                &axum::http::Method::POST => RestMethod::Post,
+                // TODO: Other methods.
+                _ => return Err(Error::UnsupportedHttpMethod(req.method().to_string())),
+            };
+
+            // Check if user's provided claims allow them to use this rule at all,
+            // and if yes find the subset of permissions that we should get a token for.
+            let permissions = match rule.check_rest_request(&claims, &api_method, &api_path)? {
+                Some(p) => p,
+                None => return Err(Error::RequestNotAllowedByRule),
+            };
+            dbg!(&permissions);
+
+            // TODO forward request, proxy response
+            return Ok("TODO".to_string());
         } else if remaining_path == "/api/graphql" {
-            api_path = ApiPath::Graphql;
-        } else {
-            return Err(Error::InvalidRequestPath);
+            // TODO: check method is POST (or GET for introspection query).
+            panic!("graphql not supported yet");
         }
-
-        // Check if user's provided claims allow them to use this rule at all,
-        // and if yes find the subset of permissions that we should get a token for.
-        // let permissions = match rule.check_rest_request(claims, method, path)
-
-        // TODO get token claims
-        // TODO validate against rule
-        // TODO find permissions for route based on method+path, if allowed
-        // TODO forward request, proxy response
-
-        // panic!("graphql not supported yet");
-
-        return Ok("TODO".to_string());
+        return Err(Error::InvalidRequestPath);
     }
-}
-
-enum ApiPath {
-    Rest(String),
-    Graphql,
 }
 
 fn extract_bearer_token(req: &Request<Body>) -> Result<String> {

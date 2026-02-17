@@ -1,8 +1,9 @@
 # Allows a specific GCP service account to read organization members.
 
 # CEL expression that only allows a single GCP service account email address.
+# TODO: better example. Also maybe improve the naming / layout of the claims to make this nicer to write
 claims = """
-    gcp_service_account.email == "foo@example-project.iam.gserviceaccount.com"
+    claims.GoogleServiceAccount.verified_email.startsWith("oidc-test@")
 """
 
 # A single allow rule.
@@ -12,6 +13,7 @@ methods = ["GET"]
 # The paths can have placeholders, or we could restrict to a single organization by
 # replacing {org} with the actual org name.
 # TODO: uniquness requirements here? validate no overlap, no ambiguous matches etc
+# TODO: maybe should allow regex, can't do validation then but can enforce unique on runtime at least
 routes = ["/orgs/{org}/members"]
 # This route only needs members:read permission on github side.
 # Technically given the restricted route we could also give other permissions and they
