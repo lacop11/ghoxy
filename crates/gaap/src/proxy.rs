@@ -1,10 +1,8 @@
-use axum::extract::path;
 use axum::http::Request;
 use axum::response::Response;
 use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
-use crate::proxy;
 use rules::{RestMethod, RuleSet};
 
 pub struct ProxyOptions {
@@ -71,9 +69,9 @@ impl Proxy {
 
         if let Some(rest_path) = remaining_path.strip_prefix("/api/v3/") {
             let api_path = format!("/{}", rest_path);
-            let api_method = match req.method() {
-                &axum::http::Method::GET => RestMethod::Get,
-                &axum::http::Method::POST => RestMethod::Post,
+            let api_method = match *req.method() {
+                axum::http::Method::GET => RestMethod::Get,
+                axum::http::Method::POST => RestMethod::Post,
                 // TODO: Other methods.
                 _ => return Err(Error::UnsupportedHttpMethod(req.method().to_string())),
             };
@@ -106,7 +104,8 @@ impl Proxy {
             // TODO: check method is POST (or GET for introspection query).
             panic!("graphql not supported yet");
         }
-        return Err(Error::InvalidRequestPath);
+
+        Err(Error::InvalidRequestPath)
     }
 }
 
@@ -128,7 +127,7 @@ async fn proxy_validated_github_rest_request(
     path: &str,
     method: &RestMethod,
     github_token: &str,
-    body: Body,
+    _body: Body,
 ) -> Result<impl IntoResponse + use<>> {
     let client = reqwest::Client::new();
     // TODO: Drop the custom method enum and use http::Method everywhere to avoid these conversions...
@@ -146,7 +145,7 @@ async fn proxy_validated_github_rest_request(
 
     // TODO send body, if any.
     let response = req_builder.send().await?;
-    let mut response_builder = Response::builder().status(response.status());
+    let response_builder = Response::builder().status(response.status());
     // TODO: do we need to return any headers?
     Ok(response_builder.body(Body::from_stream(response.bytes_stream()))?)
 }
