@@ -56,4 +56,7 @@ all / structured ideas:
 - get external reviews (team + security audit)
 - nice to haves
   - precommit (how to make it work with nix flake setup nicely?)
+    - ensure all local crates have version 0.0.0
   - improve docs, require doc strings
+  - build version embed
+    - ideally main binary crate cargo.toml also says version 0.0.0 and we inject git tag version in the build pipeline automatically so we don't have to keep in sync

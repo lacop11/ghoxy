@@ -6,6 +6,7 @@ pub struct GithubTokenProviderOptions {
     pub app_client_id: String,
     pub app_installation_id: String,
     pub app_private_key_kms_path: String,
+    pub user_agent: String,
 }
 
 pub struct GithubTokenProvider {
@@ -56,7 +57,7 @@ impl GithubTokenProvider {
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             // TODO: make this repo path or something
-            .header("User-Agent", "gaap")
+            .header("User-Agent", &self.options.user_agent)
             .json(&serde_json::json!({
                 "permissions": permissions.to_json_map(),
             }))
