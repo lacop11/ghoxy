@@ -1,11 +1,11 @@
-//! GAAP server.
+//! GHOXY server.
 
 use axum::body::Body;
 use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::response::IntoResponse;
 use clap::Parser;
-use gaap::proxy::Proxy;
+use ghoxy::proxy::Proxy;
 use std::{net::SocketAddr, sync::Arc};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -78,12 +78,12 @@ async fn main() {
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
             app_private_key_kms_path: args.app_private_key_kms_path,
-            user_agent: gaap::user_agent::USER_AGENT.to_string(),
+            user_agent: ghoxy::user_agent::USER_AGENT.to_string(),
         })
         .await
         .expect("Failed to create GithubTokenProvider");
 
-    let proxy = Proxy::new(gaap::proxy::ProxyOptions {
+    let proxy = Proxy::new(ghoxy::proxy::ProxyOptions {
         ruleset_dir: args.ruleset_dir,
         github_base_url: args.github_base_url,
         client_token_validator,

@@ -1,4 +1,4 @@
-# GAAP: GitHub Auth API Proxy
+# Ghoxy: GitHub API proxy with better authentication
 
 A proxy between your IaC provisioning, Actions workflows or other automation and GitHub itself. Provides a much finer control over permissions and removes the need to keep creating new GitHub Apps for every tiny usecase.
 
@@ -28,7 +28,7 @@ You only need to create a single GitHub App that has the superset of all the per
 
 ## Pior art
 
-There are two existing projects in this area, `magic-github-proxy` and `octo-sts`. Why do we need GAAP?
+There are two existing projects in this area, `magic-github-proxy` and `octo-sts`. Why do we need Ghoxy?
 
 - [magic-github-proxy](https://github.com/google/magic-github-proxy) handles the proxying but it relies on the client providing a JWT token that encodes the allowed scopes (routes and methods).
 
@@ -36,13 +36,13 @@ There are two existing projects in this area, `magic-github-proxy` and `octo-sts
 
     Additionally, the project is archived and unmaintained, and it lacks proper documentation. Lastly, it expects the private key available as a file and has no KMS support.
 
-- [octo-sts](https://github.com/octo-sts/app) uses config files with OIDC claim matching to authorize clients (like GAAP does), stores the key in KMS and appears to be (as of January 2026) actively maintained.
+- [octo-sts](https://github.com/octo-sts/app) uses config files with OIDC claim matching to authorize clients (like Ghoxy), stores the key in KMS and appears to be (as of January 2026) actively maintained.
 
     However, it takes a different approach to the problem. Instead of proxying requests it just issues a scoped-down token returned to client who then talks to the GitHub API directly.
 
     This solves the problem of "I need to create another app for this workflow" but not the problem of permission granularity. For example if you want to view repository settings you still need to be given a token for writing contents, and nothing can stop the client from abusing it.
 
-GAAP tries to combine the best aspects of both of these projects, giving you fine-grained access control, secure KMS storage and no need for additional services, relying only on config files identifying clients by OIDC claims.
+Ghoxy tries to combine the best aspects of both of these projects, giving you fine-grained access control, secure KMS storage and no need for additional services, relying only on config files identifying clients by OIDC claims.
 
 ## TODO
 

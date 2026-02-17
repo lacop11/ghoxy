@@ -529,25 +529,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gaap"
-version = "0.1.0"
-dependencies = [
- "axum",
- "clap",
- "client-auth",
- "gcp-kms-sign",
- "github-auth",
- "reqwest 0.13.1",
- "rules",
- "rustls",
- "thiserror 2.0.17",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "gcp-kms-sign"
 version = "0.0.0"
 dependencies = [
@@ -610,6 +591,25 @@ dependencies = [
  "r-efi",
  "wasip2",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "ghoxy"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "clap",
+ "client-auth",
+ "gcp-kms-sign",
+ "github-auth",
+ "reqwest 0.13.1",
+ "rules",
+ "rustls",
+ "thiserror 2.0.17",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

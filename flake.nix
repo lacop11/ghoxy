@@ -1,5 +1,5 @@
 {
-  description = "GAAP: GitHub Auth API Proxy";
+  description = "Ghoxy: GitHub API proxy with better authentication";
 
   # TODO: Do we want to pin to specific hash?
   inputs = {

@@ -40,7 +40,7 @@ async fn main() {
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
             app_private_key_kms_path: args.app_private_key_kms_path,
-            user_agent: gaap::user_agent::USER_AGENT.to_string(),
+            user_agent: ghoxy::user_agent::USER_AGENT.to_string(),
         })
         .await
         .expect("Failed to create GithubTokenProvider");

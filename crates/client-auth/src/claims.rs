@@ -52,7 +52,7 @@ impl GoogleServiceAccountClaims {
 //  raw_claims: Object {
 //         "actor": String("octocat"),
 //         "actor_id": String("12345678"),
-//         "aud": String("https://gaap.example.com"),
+//         "aud": String("https://ghoxy.example.com"),
 //         "base_ref": String(""),
 //         "check_run_id": String("12345678901"),
 //         "enterprise": String("octo-enterprise"),
