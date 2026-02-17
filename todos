@@ -1,6 +1,7 @@
 next up / semi-sorted by priority:
 - do the route path matching - regex or not?
 - test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
+- revisit the rule config style / semantics, write some actual rules for usable TF to see how it feels and if its easy/feasible to do useful things with it
 - clean up tracing / logging, it's a huge mess, might need redaction in places
 - caching of tokens
 - background refresh of jwks
