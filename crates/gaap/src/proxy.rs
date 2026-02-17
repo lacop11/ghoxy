@@ -1,24 +1,33 @@
+use axum::extract::path;
 use axum::http::Request;
+use axum::response::Response;
 use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
+use crate::proxy;
 use rules::{RestMethod, RuleSet};
 
 pub struct ProxyOptions {
     pub ruleset_dir: std::path::PathBuf,
-    pub token_validator: client_auth::TokenValidator,
+    pub github_base_url: String,
+    pub client_token_validator: client_auth::TokenValidator,
+    pub github_token_provider: github_auth::GithubTokenProvider,
 }
 
 pub struct Proxy {
     ruleset: RuleSet,
-    token_validator: client_auth::TokenValidator,
+    github_base_url: String,
+    client_token_validator: client_auth::TokenValidator,
+    github_token_provider: github_auth::GithubTokenProvider,
 }
 
 impl Proxy {
     pub async fn new(options: ProxyOptions) -> Result<Self> {
         Ok(Proxy {
             ruleset: RuleSet::from_directory(options.ruleset_dir)?,
-            token_validator: options.token_validator,
+            github_base_url: options.github_base_url,
+            client_token_validator: options.client_token_validator,
+            github_token_provider: options.github_token_provider,
         })
     }
 
@@ -34,7 +43,7 @@ impl Proxy {
         // Also, if the token is valid and from the trusted issuers we at least know the client's identity,
         // so if there is abuse we can tie them to a GCP service account or github user/org to investigate.
         let token = extract_bearer_token(&req)?;
-        let claims = self.token_validator.validate(&token).await?;
+        let claims = self.client_token_validator.validate(&token).await?;
         dbg!(&claims);
 
         // First part of the path is the rule the client intends to use.
@@ -46,7 +55,10 @@ impl Proxy {
         let first_segment = path.split('/').next().ok_or(Error::InvalidRequestPath)?;
         // Note: this allows enumeration of valid rule names via response code and timing.
         // Does not seem like a concern so it's intentionally not addressed.
-        let rule = self.ruleset.get_rule(first_segment).ok_or(Error::NoSuchRule(first_segment.to_string()))?;
+        let rule = self
+            .ruleset
+            .get_rule(first_segment)
+            .ok_or(Error::NoSuchRule(first_segment.to_string()))?;
 
         // For github terraform provider, if we override the base URL, it assumes we are using GHES
         // and changes the paths like this:
@@ -74,8 +86,22 @@ impl Proxy {
             };
             dbg!(&permissions);
 
-            // TODO forward request, proxy response
-            return Ok("TODO".to_string());
+            // Obtain token with the required permissions. This is cached, will only
+            // create a new token if we don't have one with long enough remaining lifetime.
+            let github_token = self
+                .github_token_provider
+                .get_installation_access_token(&permissions)
+                .await?;
+            dbg!(&github_token);
+
+            let full_request_url = format!("{}{}", self.github_base_url, api_path);
+            return proxy_validated_github_rest_request(
+                &full_request_url,
+                &api_method,
+                &github_token,
+                req.into_body(),
+            )
+            .await;
         } else if remaining_path == "/api/graphql" {
             // TODO: check method is POST (or GET for introspection query).
             panic!("graphql not supported yet");
@@ -89,9 +115,38 @@ fn extract_bearer_token(req: &Request<Body>) -> Result<String> {
         .headers()
         .get(axum::http::header::AUTHORIZATION)
         .ok_or(Error::MissingAuthorizationHeader)?;
-    let auth_str = auth_header.to_str().map_err(|_| Error::InvalidAuthorizationHeader)?;
+    let auth_str = auth_header
+        .to_str()
+        .map_err(|_| Error::InvalidAuthorizationHeader)?;
     let token = auth_str
         .strip_prefix("Bearer ")
         .ok_or(Error::InvalidAuthorizationHeader)?;
     Ok(token.to_string())
+}
+
+async fn proxy_validated_github_rest_request(
+    path: &str,
+    method: &RestMethod,
+    github_token: &str,
+    body: Body,
+) -> Result<impl IntoResponse + use<>> {
+    let client = reqwest::Client::new();
+    // TODO: Drop the custom method enum and use http::Method everywhere to avoid these conversions...
+    let req_builder = match method {
+        RestMethod::Get => client.get(path),
+        RestMethod::Post => client.post(path),
+    };
+    // TODO: Do we need to proxy any headers?
+    let req_builder = req_builder
+        .bearer_auth(github_token)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        // TODO: move to crate::user_agent constant including version number / repo path maybe.
+        .header("User-Agent", "gaap");
+
+    // TODO send body, if any.
+    let response = req_builder.send().await?;
+    let mut response_builder = Response::builder().status(response.status());
+    // TODO: do we need to return any headers?
+    Ok(response_builder.body(Body::from_stream(response.bytes_stream()))?)
 }

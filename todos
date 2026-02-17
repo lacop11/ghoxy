@@ -1,7 +1,9 @@
 next up / semi-sorted by priority:
-- crate for rules, minimal implementation (parse rules + find matching one)
-- implement the main webserver, basic flow for the proxy
+- do the route path matching - regex or not?
 - test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
+- clean up tracing / logging, it's a huge mess, might need redaction in places
+- caching of tokens
+- background refresh of jwks
 - after all this works continue making improvements below
 
 all / structured ideas:

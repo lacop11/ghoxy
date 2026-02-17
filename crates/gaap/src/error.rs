@@ -27,6 +27,14 @@ pub enum Error {
 
     #[error("Request not allowed by rule")]
     RequestNotAllowedByRule,
+
+    #[error("Github token provider error: {0}")]
+    GithubTokenProviderError(#[from] github_auth::Error),
+
+    #[error("HTTP client error: {0}")]
+    HttpClientError(#[from] reqwest::Error),
+    #[error("HTTP response error: {0}")]
+    HttpResponseError(#[from] axum::http::Error),
 }
 
 /// Result type for proxy operations.
