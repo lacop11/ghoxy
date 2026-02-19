@@ -17,34 +17,34 @@ use crate::error::ServerResult;
 pub struct Args {
     // TODO: Doc comments for all flags, suitable defaults (or lack of + required to be explicit).
     #[arg(long, default_value = "127.0.0.1:3000")]
-    address: SocketAddr,
+    pub address: SocketAddr,
 
     #[arg(long, required = true)]
-    ruleset_dir: std::path::PathBuf,
+    pub ruleset_dir: std::path::PathBuf,
 
     #[arg(long, required = true)]
-    expected_audience: String,
+    pub expected_audience: String,
     #[arg(
         long,
         use_value_delimiter = true,
         default_value = "https://accounts.google.com,https://token.actions.githubusercontent.com"
     )]
-    allowed_issuers: Vec<String>,
+    pub allowed_issuers: Vec<String>,
     #[arg(long, default_value_t = 60)]
-    token_age_leeway_seconds: u32,
+    pub token_age_leeway_seconds: u32,
 
     #[arg(long)]
-    app_client_id: String,
+    pub app_client_id: String,
     #[arg(long)]
-    app_installation_id: String,
+    pub app_installation_id: String,
     #[arg(long)]
-    app_private_key_kms_path: String,
+    pub app_private_key_kms_path: String,
 
     #[arg(long, default_value = "https://api.github.com")]
-    github_base_url: String,
+    pub github_base_url: String,
 
     #[arg(long, default_value_t = 30)]
-    issuer_jwks_refresh_interval_seconds: u64,
+    pub issuer_jwks_refresh_interval_seconds: u64,
 }
 
 async fn health() -> &'static str {
