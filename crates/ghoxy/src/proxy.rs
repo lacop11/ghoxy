@@ -142,7 +142,6 @@ async fn proxy_validated_github_rest_request(
         .header("X-GitHub-Api-Version", "2022-11-28")
         // TODO: move to crate::user_agent constant including version number / repo path maybe.
         .header("User-Agent", user_agent::USER_AGENT);
-    dbg!(&user_agent::USER_AGENT);
     // TODO send body, if any.
     let response = req_builder.send().await?;
     info!(path=path, method=?method, status=?response.status(), "Received response from github");
