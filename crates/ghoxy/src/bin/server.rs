@@ -126,23 +126,52 @@ async fn health() -> &'static str {
     "OK"
 }
 
+// To avoid leaking any internal details in the error response, we only allow
+// returning static strings. Full error details are logged and legitimate internal
+// users can find them.
 async fn proxy_request(
     State(proxy): State<Arc<Proxy>>,
     req: Request<Body>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
+) -> Result<impl IntoResponse, (StatusCode, &'static str)> {
     match proxy.handle_request(req).await {
         Ok(resp) => Ok(resp),
         Err(e) => {
-            tracing::error!("Error handling request: {}", e);
-            match e {
-                // TODO: Better status codes and messages for known error types.
-                // Do not leak internal error details in responses, we log the full error for debugging
-                // but client should get a censored message in some cases.
-                _ => Err((
+            // Log the full error for debugging, as warning only,
+            // since this can be user's fault.
+            tracing::warn!("Error handling request: {}", e);
+
+            use ghoxy::error::Error::*;
+            let code_and_message = match e {
+                InvalidRequestPath => (StatusCode::NOT_FOUND, "Invalid request path"),
+                NoSuchRule(_) => (StatusCode::NOT_FOUND, "No such rule"),
+                InvalidRules(_) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "Unexpected server error".to_string(),
-                )),
-            }
+                    "Invalid rules configuration",
+                ),
+                TokenValidationError(_) => {
+                    (StatusCode::UNAUTHORIZED, "Invalid authorization token")
+                }
+                MissingAuthorizationHeader => {
+                    (StatusCode::UNAUTHORIZED, "Missing authorization header")
+                }
+                InvalidAuthorizationHeader => {
+                    (StatusCode::UNAUTHORIZED, "Invalid authorization header")
+                }
+                UnsupportedHttpMethod(_) => {
+                    (StatusCode::METHOD_NOT_ALLOWED, "Unsupported HTTP method")
+                }
+                UnsupportedGraphqlMethod => {
+                    (StatusCode::METHOD_NOT_ALLOWED, "Unsupported GraphQL method")
+                }
+                RequestNotAllowedByRule => (StatusCode::FORBIDDEN, "Request not allowed by rules"),
+                GithubTokenProviderError(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Github token provider error",
+                ),
+                HttpClientError(_) => (StatusCode::BAD_GATEWAY, "Upstream service error"),
+                HttpResponseError(_) => (StatusCode::BAD_GATEWAY, "Upstream service error"),
+            };
+            Err(code_and_message)
         }
     }
 }

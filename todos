@@ -36,7 +36,7 @@ all / structured ideas:
   - security
     - review deps, reduce dependency tree
     - stricter cargo deny config
-    - stricter rules for deny_unwrap etc
+    - stricter clippy rules, deny unwrap/panic/todo!/etc
   - improvements
     - logging/tracing, gcp compatible structured logs, lb trace ids?
     - kms audit logs (not working in sandbox for some reason)
