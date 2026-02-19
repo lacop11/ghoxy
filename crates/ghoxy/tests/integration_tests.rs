@@ -1,6 +1,8 @@
+use httpmock::prelude::*;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+// TODO: Extract the mock and setup bits into shared library and make the actual tests simpler.
 #[tokio::test]
 async fn test_end_to_end() {
     rustls::crypto::aws_lc_rs::default_provider()
@@ -17,11 +19,40 @@ async fn test_end_to_end() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let mock_issuer = MockServer::start_async().await;
+    dbg!("Mock issuer listening on {}", mock_issuer.address());
+
+    mock_issuer
+        .mock_async(|when, then| {
+            when.path("/.well-known/openid-configuration").method("GET");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    serde_json::json!({
+                        "jwks_uri": format!("http://{}/jwks", mock_issuer.address())
+                    })
+                    .to_string(),
+                );
+        })
+        .await;
+    mock_issuer
+        .mock_async(|when, then| {
+            when.path("/jwks").method("GET");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    serde_json::json!({
+                        "keys": []
+                    })
+                    .to_string(),
+                );
+        })
+        .await;
+
     let args = ghoxy::server::Args {
         address: std::net::SocketAddr::V4(std::net::SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 0)),
 
-        // allowed_issuers: vec!["http://allowed-issuer.example.com".to_string()],
-        allowed_issuers: vec!["https://accounts.google.com".to_string()],
+        allowed_issuers: vec![format!("http://{}", mock_issuer.address())],
         expected_audience: "test-audience".to_string(),
 
         app_client_id: "test-client-id".to_string(),
