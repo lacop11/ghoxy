@@ -9,7 +9,7 @@ cel = "0.12.0"
 client-auth = { path = "../client-auth" }
 github-auth = { path = "../github-auth" }
 
-
+http = "1.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 thiserror = "2.0.17"

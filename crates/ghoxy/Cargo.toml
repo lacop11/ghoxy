@@ -10,6 +10,7 @@ client-auth = { path = "../client-auth" }
 github-auth = { path = "../github-auth" }
 rules = { path = "../rules" }
 
+http = "1.4.0"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
 clap = { version = "4.5.54", features = ["derive"] }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }

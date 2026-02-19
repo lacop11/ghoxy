@@ -1,6 +1,5 @@
 use crate::Result;
 use regex::Regex;
-use serde::Deserialize;
 
 #[derive(Debug)]
 pub struct Rule {
@@ -12,17 +11,9 @@ pub struct Rule {
 #[derive(Debug)]
 pub struct RuleRest {
     // TODO enumset?
-    methods: Vec<RestMethod>,
+    methods: Vec<http::Method>,
     routes: Vec<Regex>,
     permissions: github_auth::Permissions,
-}
-
-#[derive(Debug, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum RestMethod {
-    // TODO: More methods as needed.
-    Get,
-    Post,
 }
 
 impl Rule {
@@ -65,7 +56,7 @@ impl Rule {
     pub fn check_rest_request(
         &self,
         claims: &client_auth::Claims,
-        method: &RestMethod,
+        method: &http::Method,
         path: &str,
     ) -> Result<Option<github_auth::Permissions>> {
         if !self.check_claims(claims)? {
@@ -96,6 +87,15 @@ impl Rule {
 
 impl RuleRest {
     fn from_rule_file_rest(rest: internal::RuleRest) -> Result<Self> {
+        let methods = rest
+            .methods
+            .iter()
+            // TODO: Maybe force only subset of methods? Weird stuff like extensions shouold be rejected here.
+            .map(|m| {
+                m.parse::<http::Method>()
+                    .map_err(crate::Error::InvalidRestMethod)
+            })
+            .collect::<Result<Vec<_>>>()?;
         let routes = rest
             .routes
             .iter()
@@ -103,7 +103,7 @@ impl RuleRest {
             .map(anchored_regex)
             .collect::<Result<Vec<_>>>()?;
         Ok(RuleRest {
-            methods: check_not_empty(rest.methods, crate::Error::EmptyMethodList)?,
+            methods: check_not_empty(methods, crate::Error::EmptyMethodList)?,
             routes: check_not_empty(routes, crate::Error::EmptyPathList)?,
             permissions: github_auth::Permissions::from_permission_list(&rest.permissions)?,
         })
@@ -120,7 +120,6 @@ fn anchored_regex(s: &String) -> Result<Regex> {
 // Raw format for deserializing the rule files, requires more validation
 // and transforms into the public Rule struct.
 mod internal {
-    use super::RestMethod;
     use serde::Deserialize;
 
     #[derive(Debug, Deserialize)]
@@ -132,7 +131,7 @@ mod internal {
 
     #[derive(Debug, Deserialize)]
     pub(crate) struct RuleRest {
-        pub methods: Vec<RestMethod>,
+        pub methods: Vec<String>,
         pub routes: Vec<String>,
         pub permissions: Vec<String>,
     }
@@ -166,7 +165,7 @@ mod tests {
             raw_claims: serde_json::json!({}),
         };
         let permissions = rule
-            .check_rest_request(&claims, &RestMethod::Get, "/foo")
+            .check_rest_request(&claims, &http::Method::GET, "/foo")
             .unwrap();
         assert_eq!(
             permissions,
@@ -177,13 +176,13 @@ mod tests {
 
         // Not allowed because of method.
         let permissions = rule
-            .check_rest_request(&claims, &RestMethod::Post, "/foo")
+            .check_rest_request(&claims, &http::Method::POST, "/foo")
             .unwrap();
         assert_eq!(permissions, None);
 
         // Not allowed because of path.
         let permissions = rule
-            .check_rest_request(&claims, &RestMethod::Get, "/bar")
+            .check_rest_request(&claims, &http::Method::GET, "/bar")
             .unwrap();
         assert_eq!(permissions, None);
     }
@@ -279,31 +278,31 @@ mod tests {
         };
 
         assert!(matches!(
-            rule.check_rest_request(&claims, &RestMethod::Get, "/foo"),
+            rule.check_rest_request(&claims, &http::Method::GET, "/foo"),
             Ok(Some(_))
         ));
         assert!(matches!(
-            rule.check_rest_request(&claims, &RestMethod::Get, "/foo/bar"),
+            rule.check_rest_request(&claims, &http::Method::GET, "/foo/bar"),
             Ok(None)
         ));
         assert!(matches!(
-            rule.check_rest_request(&claims, &RestMethod::Get, "/orgs/arbitrary/members"),
+            rule.check_rest_request(&claims, &http::Method::GET, "/orgs/arbitrary/members"),
             Ok(Some(_))
         ));
         assert!(matches!(
             rule.check_rest_request(
                 &claims,
-                &RestMethod::Get,
+                &http::Method::GET,
                 "/orgs/sneaky/extra/segments/members"
             ),
             Ok(None)
         ));
         assert!(matches!(
-            rule.check_rest_request(&claims, &RestMethod::Get, "/users/alice/repos"),
+            rule.check_rest_request(&claims, &http::Method::GET, "/users/alice/repos"),
             Ok(Some(_))
         ));
         assert!(matches!(
-            rule.check_rest_request(&claims, &RestMethod::Get, "/users/charlie/repos"),
+            rule.check_rest_request(&claims, &http::Method::GET, "/users/charlie/repos"),
             Ok(None)
         ));
     }

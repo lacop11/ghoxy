@@ -4,7 +4,7 @@ use axum::{body::Body, response::IntoResponse};
 
 use crate::error::{Error, Result};
 use crate::user_agent;
-use rules::{RestMethod, RuleSet};
+use rules::RuleSet;
 use tracing::info;
 
 pub struct ProxyOptions {
@@ -72,16 +72,9 @@ impl Proxy {
 
         if let Some(rest_path) = remaining_path.strip_prefix("/api/v3/") {
             let api_path = format!("/{}", rest_path);
-            let api_method = match *req.method() {
-                axum::http::Method::GET => RestMethod::Get,
-                axum::http::Method::POST => RestMethod::Post,
-                // TODO: Other methods.
-                _ => return Err(Error::UnsupportedHttpMethod(req.method().to_string())),
-            };
-
             // Check if user's provided claims allow them to use this rule at all,
             // and if yes find the subset of permissions that we should get a token for.
-            let permissions = match rule.check_rest_request(&claims, &api_method, &api_path)? {
+            let permissions = match rule.check_rest_request(&claims, req.method(), &api_path)? {
                 Some(p) => p,
                 None => return Err(Error::RequestNotAllowedByRule),
             };
@@ -97,7 +90,7 @@ impl Proxy {
             let full_request_url = format!("{}{}", self.github_base_url, api_path);
             return proxy_validated_github_rest_request(
                 &full_request_url,
-                &api_method,
+                req.method().clone(),
                 &github_token,
                 req.into_body(),
             )
@@ -127,18 +120,14 @@ fn extract_bearer_token(req: &Request<Body>) -> Result<String> {
 
 async fn proxy_validated_github_rest_request(
     path: &str,
-    method: &RestMethod,
+    method: http::Method,
     github_token: &str,
     _body: Body,
 ) -> Result<impl IntoResponse + use<>> {
     let client = reqwest::Client::new();
-    // TODO: Drop the custom method enum and use http::Method everywhere to avoid these conversions...
-    let req_builder = match method {
-        RestMethod::Get => client.get(path),
-        RestMethod::Post => client.post(path),
-    };
     // TODO: Do we need to proxy any headers?
-    let req_builder = req_builder
+    let req_builder = client
+        .request(method.clone(), path)
         .bearer_auth(github_token)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")

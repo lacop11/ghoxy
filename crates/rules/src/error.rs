@@ -12,6 +12,9 @@ pub enum Error {
     #[error("CEL parse errors: {0}")]
     CelParseError(#[from] cel::ParseErrors),
 
+    #[error("Invalid REST method: {0}")]
+    InvalidRestMethod(#[from] http::method::InvalidMethod),
+
     #[error("Regex parse error: {0}")]
     RegexParseError(#[from] regex::Error),
     #[error("Regex is explictly anchored, remove ^/$, it is always added automatically")]
