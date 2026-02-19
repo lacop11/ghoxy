@@ -7,6 +7,7 @@ use axum::response::IntoResponse;
 use clap::Parser;
 use ghoxy::proxy::Proxy;
 use std::{net::SocketAddr, sync::Arc};
+use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -40,6 +41,9 @@ struct Args {
 
     #[arg(long, default_value = "https://api.github.com")]
     github_base_url: String,
+
+    #[arg(long, default_value_t = 30)]
+    issuer_jwks_refresh_interval_seconds: u64,
 }
 
 #[tokio::main]
@@ -58,6 +62,7 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+    info!("Initializing GHOXY server...");
 
     let args = Args::parse();
 
@@ -67,11 +72,12 @@ async fn main() {
             allowed_issuers: args.allowed_issuers,
             token_age_leeway_seconds: args.token_age_leeway_seconds,
         });
-    // FIXME: this needs to be done periodically, ideally automatically.
+    // Run the initial refresh before starting the server so we can fail fast if something
+    // is misconfigured, and can handle client requests right away.
     client_token_validator
         .update_jwks()
         .await
-        .expect("Failed to fetch JWKS");
+        .expect("Failed to fetch initial JWKS");
 
     let github_token_provider =
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
@@ -91,14 +97,27 @@ async fn main() {
     })
     .await
     .expect("Failed to initialize proxy");
+    let proxy = Arc::new(proxy);
+
+    // Start background task to periodically refresh JWKS to handle issuers rotating keys.
+    let proxy_clone = proxy.clone();
+    tokio::spawn(async move {
+        proxy_clone
+            .refresh_jwks_periodically(std::time::Duration::from_secs(
+                args.issuer_jwks_refresh_interval_seconds,
+            ))
+            .await;
+    });
 
     // TODO: add tracing + compression middleware?
     let app = axum::Router::new()
         .route("/health", axum::routing::get(health))
         .fallback(proxy_request)
-        .with_state(Arc::new(proxy))
+        .with_state(proxy.clone())
         // TODO: Better tracing (custom layer that logs the relevant bits with masked secrets?)
         .layer(tower_http::trace::TraceLayer::new_for_http());
+
+    info!("Starting GHOXY server on {}", args.address);
     let listener = tokio::net::TcpListener::bind(args.address).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

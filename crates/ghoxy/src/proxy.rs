@@ -8,17 +8,17 @@ use rules::RuleSet;
 use tracing::info;
 
 pub struct ProxyOptions {
-    pub ruleset_dir: std::path::PathBuf,
-    pub github_base_url: String,
     pub client_token_validator: client_auth::TokenValidator,
     pub github_token_provider: github_auth::GithubTokenProvider,
+    pub ruleset_dir: std::path::PathBuf,
+    pub github_base_url: String,
 }
 
 pub struct Proxy {
-    ruleset: RuleSet,
-    github_base_url: String,
     client_token_validator: client_auth::TokenValidator,
     github_token_provider: github_auth::GithubTokenProvider,
+    ruleset: RuleSet,
+    github_base_url: String,
 }
 
 impl Proxy {
@@ -29,6 +29,15 @@ impl Proxy {
             client_token_validator: options.client_token_validator,
             github_token_provider: options.github_token_provider,
         })
+    }
+
+    pub async fn refresh_jwks_periodically(&self, interval: std::time::Duration) {
+        loop {
+            tokio::time::sleep(interval).await;
+            if let Err(e) = self.client_token_validator.update_jwks().await {
+                tracing::error!("Error refreshing JWKS: {}", e);
+            }
+        }
     }
 
     // Note on the weird "+ use<>", this is to prevent capturing self lifetime by default.

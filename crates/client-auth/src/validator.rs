@@ -47,9 +47,26 @@ impl TokenValidator {
         for (issuer, jwks_lock) in &self.cached_jwks {
             let openid_config_url = format!("{}/.well-known/openid-configuration", issuer);
             let jwks = jwks::Jwks::from_oidc_url(openid_config_url).await?;
-            let mut jwks_guard = jwks_lock.write().await;
-            *jwks_guard = Some(jwks);
-            // TODO: Log the list of keys each time we update it (first time, or when changed, to reduce noise).
+            // Swap and keep the old value. Don't hold the lock for the logging afterwards.
+            let old_jwks = {
+                let mut jwks_guard = jwks_lock.write().await;
+                jwks_guard.replace(jwks.clone())
+            };
+            // Log if this is the first time we fetched this issuer's JWKS,
+            // or if the keys have changed since last time.
+            match old_jwks {
+                None => tracing::info!(
+                    "Fetched JWKS for issuer {}. Key IDs: {:?}",
+                    issuer,
+                    jwks.keys.keys().collect::<Vec<_>>()
+                ),
+                Some(old) if jwks_differ(&old, &jwks) => tracing::info!(
+                    "Updated JWKS for issuer {}. Key IDs: {:?}",
+                    issuer,
+                    jwks.keys.keys().collect::<Vec<_>>()
+                ),
+                _ => {} // Unchanged.
+            }
         }
         Ok(())
     }
@@ -104,4 +121,13 @@ fn get_unvalidated_issuer(token: &str) -> Result<String> {
     let unvalidated_claims =
         jsonwebtoken::dangerous::insecure_decode::<UnvalidatedIssuerClaim>(token)?;
     Ok(unvalidated_claims.claims.iss)
+}
+
+fn jwks_differ(old: &jwks::Jwks, new: &jwks::Jwks) -> bool {
+    // Compare the set of key ids only. The jwks crate does not implement Eq and hides the key material,
+    // even though in this context it's not sensitive (public keys only). Unlikely the provider will
+    // change key content without changing the kid, so this is good enough.
+    let old_kids: std::collections::HashSet<_> = old.keys.keys().collect();
+    let new_kids: std::collections::HashSet<_> = new.keys.keys().collect();
+    old_kids != new_kids
 }

@@ -1,5 +1,4 @@
 next up / semi-sorted by priority:
-- do the route path matching - regex or not?
 - test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
 - revisit the rule config style / semantics, write some actual rules for usable TF to see how it feels and if its easy/feasible to do useful things with it
 - clean up tracing / logging, it's a huge mess, might need redaction in places
@@ -8,7 +7,6 @@ next up / semi-sorted by priority:
 - after all this works continue making improvements below
 
 all / structured ideas:
-- rename (ghoxy? some better unique/searchable name)
 - finish up docs
   - security model
   - config setup
@@ -34,8 +32,6 @@ all / structured ideas:
       - logging
         - every request must be carefully logged, don't leak any secrets in logs but have comprehensive audits
       - background refresh stuff (or fix libs to do that internally)
-    - client auth
-      - remove need for caller to refresh jwks, do it internally
     - review all TODOs and clarify if they are blocking FIXMEs, nice to have TODOs or if they need security review attention
   - security
     - review deps, reduce dependency tree
