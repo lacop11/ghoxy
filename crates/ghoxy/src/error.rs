@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
-pub enum Error {
+pub enum ProxyError {
     #[error("Invalid request path")]
     InvalidRequestPath,
 
@@ -38,4 +38,22 @@ pub enum Error {
 }
 
 /// Result type for proxy operations.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type ProxyResult<T> = std::result::Result<T, ProxyError>;
+
+#[derive(Error, Debug)]
+#[allow(missing_docs)]
+pub enum ServerError {
+    #[error("Proxy error: {0}")]
+    ProxyError(#[from] ProxyError),
+
+    #[error("Client auth validator error: {0}")]
+    ClientAuthValidatorError(#[from] client_auth::Error),
+
+    #[error("Github token provider error: {0}")]
+    GithubTokenProviderError(#[from] github_auth::Error),
+
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+}
+
+pub type ServerResult<T> = std::result::Result<T, ServerError>;
