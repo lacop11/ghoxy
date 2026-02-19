@@ -52,6 +52,9 @@ pub enum ServerError {
     #[error("Github token provider error: {0}")]
     GithubTokenProviderError(#[from] github_auth::Error),
 
+    #[error("GCP KMS error: {0}")]
+    GcpKmsKeyError(#[from] gcp_kms_sign::Error),
+
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 }

@@ -5,23 +5,20 @@ use crate::{Permissions, Result};
 pub struct GithubTokenProviderOptions {
     pub app_client_id: String,
     pub app_installation_id: String,
-    pub app_private_key_kms_path: String,
+    pub app_key_kms: GcpKmsKeyVersion,
     pub user_agent: String,
 }
 
 pub struct GithubTokenProvider {
     options: GithubTokenProviderOptions,
-    app_key_kms: GcpKmsKeyVersion,
     // TODO: token caches, keyed by permissions, should store expiration time so if too short we can refresh
 }
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
         // TODO: Validate app_installation_id is numeric
-        let app_key_kms = GcpKmsKeyVersion::new(&options.app_private_key_kms_path).await?;
         Ok(GithubTokenProvider {
             options,
-            app_key_kms,
         })
     }
 
@@ -50,6 +47,7 @@ impl GithubTokenProvider {
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
+                // TODO: replace with github base url from options
                 "https://api.github.com/app/installations/{}/access_tokens",
                 self.options.app_installation_id
             ))
@@ -123,7 +121,7 @@ impl GithubTokenProvider {
             base64_url_encoded(&serde_json::to_vec(&claims)?),
         );
         let signature = self
-            .app_key_kms
+            .options.app_key_kms
             .asymmetric_sign(partial_jwt.as_bytes())
             .await?;
         let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);

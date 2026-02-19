@@ -3,6 +3,7 @@ use axum::body::Body;
 use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::response::IntoResponse;
+use gcp_kms_sign::GcpKmsKeyVersion;
 
 use crate::proxy::Proxy;
 use std::{net::SocketAddr, sync::Arc};
@@ -42,6 +43,8 @@ pub struct Args {
 
     #[arg(long, default_value = "https://api.github.com")]
     pub github_base_url: String,
+    #[arg(long)]
+    pub gcp_kms_api_base_url: Option<String>,
 
     #[arg(long, default_value_t = 30)]
     pub issuer_jwks_refresh_interval_seconds: u64,
@@ -118,7 +121,11 @@ pub async fn create_server(
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
-            app_private_key_kms_path: args.app_private_key_kms_path,
+            app_key_kms: GcpKmsKeyVersion::new(
+                &args.app_private_key_kms_path,
+                args.gcp_kms_api_base_url.as_deref(),
+            )
+            .await?,
             user_agent: crate::user_agent::USER_AGENT.to_string(),
         })
         .await?;

@@ -1,6 +1,7 @@
 //! Testing tool to use the KMS private key to create Github access token.
 
 use clap::Parser;
+use gcp_kms_sign::GcpKmsKeyVersion;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -39,7 +40,9 @@ async fn main() {
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
-            app_private_key_kms_path: args.app_private_key_kms_path,
+            app_key_kms: GcpKmsKeyVersion::new(&args.app_private_key_kms_path, None)
+                .await
+                .expect("Failed to create GcpKmsKeyVersion"),
             user_agent: ghoxy::user_agent::USER_AGENT.to_string(),
         })
         .await

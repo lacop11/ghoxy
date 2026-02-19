@@ -18,6 +18,7 @@ use thiserror::Error;
 pub struct GcpKmsKeyVersion {
     auth_provider: std::sync::Arc<dyn gcp_auth::TokenProvider>,
     key_version_name: String,
+    gcp_kms_api_base_url: String,
 }
 
 /// Metadata about a KMS key version.
@@ -83,11 +84,12 @@ impl GcpKmsKeyVersion {
     /// Create a new GcpKmsKeyVersion instance.
     ///
     /// Will check if the provided key version can be used for signing.
-    pub async fn new(key_version_name: &str) -> Result<Self> {
+    pub async fn new(key_version_name: &str, gcp_kms_api_base_url: Option<&str>) -> Result<Self> {
         let auth_provider = gcp_auth::provider().await?;
         let key_version = Self {
             auth_provider,
             key_version_name: key_version_name.to_string(),
+            gcp_kms_api_base_url: gcp_kms_api_base_url.unwrap_or("https://cloudkms.googleapis.com").to_string(),
         };
 
         let metadata = key_version.get_medatadata().await?;
@@ -110,8 +112,8 @@ impl GcpKmsKeyVersion {
         let token = self.auth_provider.token(SCOPES).await?;
 
         let url = format!(
-            "https://cloudkms.googleapis.com/v1/{}",
-            self.key_version_name
+            "{}/v1/{}",
+            self.gcp_kms_api_base_url, self.key_version_name
         );
 
         let resp = client.get(&url).bearer_auth(token.as_str()).send().await?;
@@ -134,8 +136,8 @@ impl GcpKmsKeyVersion {
         let token = self.auth_provider.token(SCOPES).await?;
 
         let url = format!(
-            "https://cloudkms.googleapis.com/v1/{}:asymmetricSign",
-            self.key_version_name
+            "{}/v1/{}:asymmetricSign",
+            self.gcp_kms_api_base_url, self.key_version_name
         );
 
         #[derive(serde::Serialize)]
