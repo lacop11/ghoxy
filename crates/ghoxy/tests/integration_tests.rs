@@ -23,7 +23,7 @@ async fn test_end_to_end() {
     let mock_issuer = MockServer::start_async().await;
     dbg!("Mock issuer listening on {}", mock_issuer.address());
 
-    mock_issuer
+    let mock_issuer_openid = mock_issuer
         .mock_async(|when, then| {
             when.path("/.well-known/openid-configuration").method("GET");
             then.status(200)
@@ -36,7 +36,7 @@ async fn test_end_to_end() {
                 );
         })
         .await;
-    mock_issuer
+    let mock_issuer_jwks = mock_issuer
         .mock_async(|when, then| {
             when.path("/jwks").method("GET");
             then.status(200)
@@ -53,7 +53,7 @@ async fn test_end_to_end() {
 
     let mock_gcp_kms = MockServer::start_async().await;
     dbg!("Mock GCP KMS listening on {}", mock_gcp_kms.address());
-    mock_gcp_kms.mock_async(|when, then| {
+    let mock_gcp_kms_keyinfo = mock_gcp_kms.mock_async(|when, then| {
         when.path("/v1/projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1").method("GET");
         then.status(200)
         .header("content-type", "application/json")
@@ -79,8 +79,9 @@ async fn test_end_to_end() {
         app_private_key_kms_path: "projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1".to_string(),
 
         token_age_leeway_seconds: 60,
-        issuer_jwks_refresh_interval_seconds: 30,
+        issuer_jwks_refresh_interval_seconds: 3600,
 
+        // TODO: generate temp dir with some rules for this
         ruleset_dir: std::path::PathBuf::from("../../example-rules"),
 
         github_base_url: "http://github-base.example.com".to_string(),
@@ -88,11 +89,29 @@ async fn test_end_to_end() {
     };
 
     let server = ghoxy::server::create_server(args).await.unwrap();
-    let address = server.local_addr();
-
+    let address = server.local_addr().unwrap();
     dbg!("Server is listening on {:?}", address);
 
-    // TODO graceful shutdown
-    server.await.unwrap();
-    // TODO call assert on all the mock servers
+    // At this point the first-time initialization should be done.
+    mock_issuer_openid.assert();
+    mock_issuer_jwks.assert();
+    mock_gcp_kms_keyinfo.assert();
+
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    let shutdown_signal = async {
+        shutdown_rx.await.ok();
+    };
+    let server = server.with_graceful_shutdown(shutdown_signal);
+
+    // Start the server in background task.
+    let server_task = tokio::spawn(async move {
+        server.await.unwrap();
+    });
+
+    // TODO send some requests
+    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+    // Shutdown the server and wait for it to finish cleanly.
+    shutdown_tx.send(()).unwrap();
+    server_task.await.unwrap();
 }

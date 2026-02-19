@@ -156,7 +156,7 @@ async fn proxy_validated_github_rest_request(
     info!(path=path, method=?method, status=?response.status(), "Received response from github");
     let response_builder = Response::builder().status(response.status());
     // TODO: do we need to return any headers?
-    Ok(response_builder
+    response_builder
         .body(Body::from_stream(response.bytes_stream()))
-        .map_err(ProxyError::HttpResponseError)?)
+        .map_err(ProxyError::HttpResponseError)
 }
