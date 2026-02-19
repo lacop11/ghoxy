@@ -1,3 +1,6 @@
+use aws_lc_rs::encoding::AsDer;
+use aws_lc_rs::signature::KeyPair;
+use base64::Engine;
 // Integration tests mocking all external dependencies (Github, OIDC issuer and GCP KMS).
 use httpmock::prelude::*;
 use tracing_subscriber::layer::SubscriberExt;
@@ -10,6 +13,7 @@ async fn test_end_to_end() {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("Need default crypto provider");
+
     // TODO move to some shared lib
     tracing_subscriber::registry()
         .with(
@@ -22,6 +26,64 @@ async fn test_end_to_end() {
 
     let mock_issuer = MockServer::start_async().await;
     dbg!("Mock issuer listening on {}", mock_issuer.address());
+
+    // generate JWK/JWT, this is huge mess, clean up
+    // generate rsa key pair
+    let private_key =
+        aws_lc_rs::signature::RsaKeyPair::generate(aws_lc_rs::rsa::KeySize::Rsa2048).unwrap();
+    let public_key = private_key.public_key();
+    let jwks = serde_json::json!({
+        "keys": [{
+            "kid": "test-key-id",
+            "alg": "RS256",
+            "kty": "RSA",
+            "n": base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(public_key.modulus().big_endian_without_leading_zero()),
+            "e": base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(public_key.exponent().big_endian_without_leading_zero()),
+        }]
+    });
+    //dbg!(jwks);
+    // println!("{}", serde_json::to_string_pretty(&jwks).unwrap());
+    // sign some test token
+    let mut header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256);
+    header.kid = Some("test-key-id".to_string());
+    #[derive(serde::Serialize)]
+    struct Claims {
+        iss: String,
+        aud: String,
+        exp: usize,
+    }
+    let claims = Claims {
+        iss: format!("http://{}", mock_issuer.address()),
+        aud: "test-audience".to_string(),
+        exp: (std::time::SystemTime::now() + std::time::Duration::from_secs(300))
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as usize,
+    };
+    let partial_jwt = format!(
+        "{}.{}",
+        base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(serde_json::to_vec(&header).unwrap()),
+        base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .encode(serde_json::to_vec(&claims).unwrap()),
+    );
+    let mut signature = vec![0; private_key.public_modulus_len()];
+    let rng = aws_lc_rs::rand::SystemRandom::new();
+    private_key
+        .sign(
+            &aws_lc_rs::signature::RSA_PKCS1_SHA256,
+            &rng,
+            partial_jwt.as_bytes(),
+            &mut signature,
+        )
+        .unwrap();
+    let signed_jwt = format!(
+        "{}.{}",
+        partial_jwt,
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(signature)
+    );
+    // dbg!(signed_jwt);
+    // end of garbage, clean up above^^
 
     let mock_issuer_openid = mock_issuer
         .mock_async(|when, then| {
@@ -41,13 +103,7 @@ async fn test_end_to_end() {
             when.path("/jwks").method("GET");
             then.status(200)
                 .header("content-type", "application/json")
-                .body(
-                    serde_json::json!({
-                        // TODO: generate some jwk so we can produce valid token
-                        "keys": []
-                    })
-                    .to_string(),
-                );
+                .body(serde_json::to_string(&jwks).unwrap());
         })
         .await;
 
@@ -107,6 +163,19 @@ async fn test_end_to_end() {
     let server_task = tokio::spawn(async move {
         server.await.unwrap();
     });
+
+    // Send request with our signed JWT.
+    let client = reqwest::Client::new();
+    let response = client
+        .get(format!(
+            "http://{}/get-users/api/v3/orgs/someorg/members",
+            address
+        ))
+        .bearer_auth(signed_jwt)
+        .send()
+        .await
+        .unwrap();
+    assert!(response.status().is_success());
 
     // TODO send some requests
     tokio::time::sleep(std::time::Duration::from_secs(5)).await;

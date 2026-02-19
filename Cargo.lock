@@ -732,16 +732,20 @@ dependencies = [
 name = "ghoxy"
 version = "0.1.0"
 dependencies = [
+ "aws-lc-rs",
  "axum",
+ "base64",
  "clap",
  "client-auth",
  "gcp-kms-sign",
  "github-auth",
  "http",
  "httpmock",
+ "jsonwebtoken",
  "reqwest 0.13.1",
  "rules",
  "rustls",
+ "serde",
  "serde_json",
  "thiserror 2.0.17",
  "tokio",

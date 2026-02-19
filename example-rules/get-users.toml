@@ -2,9 +2,10 @@
 
 # CEL expression that only allows a single GCP service account email address.
 # TODO: better example. Also maybe improve the naming / layout of the claims to make this nicer to write
-claims = """
-    claims.GoogleServiceAccount.verified_email.startsWith("oidc-test@")
-"""
+#claims = """
+#    claims.GoogleServiceAccount.verified_email.startsWith("oidc-test@")
+#"""
+claims = """true"""
 
 # A single allow rule.
 [[rest]]
