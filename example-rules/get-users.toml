@@ -10,11 +10,13 @@ claims = """
 [[rest]]
 # Can allow multiple methods, if we eg. want to allow read+write access at once.
 methods = ["GET"]
-# The paths can have placeholders, or we could restrict to a single organization by
-# replacing {org} with the actual org name.
-# TODO: uniquness requirements here? validate no overlap, no ambiguous matches etc
-# TODO: maybe should allow regex, can't do validation then but can enforce unique on runtime at least
-routes = ["/orgs/{org}/members"]
+
+# TODO rethink this... regex is more flexible, but awkward to do the [^/]+ for each segment,
+# something like /orgs/{org}/members would be nicer, but then harder to do something like one of few orgs,
+# with regex can do /orgs/(org1|org2)/members. Some middle ground with custom syntax, or not worth it?
+# Like /orgs/{org}/members or /orgs/{org:org1|org2}/members or something like that.
+routes = ["/orgs/[^/]+/members"]
+
 # This route only needs members:read permission on github side.
 # Technically given the restricted route we could also give other permissions and they
 # could not be used for anything, but it is better to only allow the minimum necessary permissions.

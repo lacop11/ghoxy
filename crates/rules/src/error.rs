@@ -12,6 +12,11 @@ pub enum Error {
     #[error("CEL parse errors: {0}")]
     CelParseError(#[from] cel::ParseErrors),
 
+    #[error("Regex parse error: {0}")]
+    RegexParseError(#[from] regex::Error),
+    #[error("Regex is explictly anchored, remove ^/$, it is always added automatically")]
+    RegexExplicitlyAnchored,
+
     #[error("Invalid github permisssions: {0}")]
     InvalidGithubPermissions(#[from] github_auth::Error),
 

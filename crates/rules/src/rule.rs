@@ -1,4 +1,5 @@
 use crate::Result;
+use regex::Regex;
 use serde::Deserialize;
 
 #[derive(Debug)]
@@ -12,8 +13,7 @@ pub struct Rule {
 pub struct RuleRest {
     // TODO enumset?
     methods: Vec<RestMethod>,
-    // TODO: parsed segmented representation
-    paths: Vec<String>,
+    routes: Vec<Regex>,
     permissions: github_auth::Permissions,
 }
 
@@ -73,15 +73,18 @@ impl Rule {
             return Ok(None);
         }
 
-        // Find matching rules. If there are multiple the rule is ambiguous and we should fail.
+        // Find matching rule. Fail if multiple rules match.
         let mut matching_rest_rule = None;
         for rest_rule in &self.rest {
             if !rest_rule.methods.contains(method) {
                 continue;
             }
-            // TODO: check the path match including wildcards
-            let _ = rest_rule.paths;
-            let _ = path;
+
+            if !rest_rule.routes.iter().any(|r| r.is_match(path)) {
+                continue;
+            }
+
+            // Match must be unambigious, otherwise it's not clear which permissions to use.
             if matching_rest_rule.is_some() {
                 return Err(crate::Error::AmbiguousRule);
             }
@@ -93,15 +96,25 @@ impl Rule {
 
 impl RuleRest {
     fn from_rule_file_rest(rest: internal::RuleRest) -> Result<Self> {
+        let routes = rest
+            .routes
+            .iter()
+            // Force fully anchored regex.
+            .map(anchored_regex)
+            .collect::<Result<Vec<_>>>()?;
         Ok(RuleRest {
             methods: check_not_empty(rest.methods, crate::Error::EmptyMethodList)?,
-            // TODO: Validate the paths, maybe pre-compile into some mathing form (eg. Vec<Enum(Literal/Wildcard)> for each segment)
-            // TODO: validate no overlap / ambiguity / duplicatio? can we do reliably at this point, or only
-            // at rule evaluation time? (no early exit, check all and fail if multiple match)
-            paths: check_not_empty(rest.routes, crate::Error::EmptyPathList)?,
+            routes: check_not_empty(routes, crate::Error::EmptyPathList)?,
             permissions: github_auth::Permissions::from_permission_list(&rest.permissions)?,
         })
     }
+}
+
+fn anchored_regex(s: &String) -> Result<Regex> {
+    if s.starts_with('^') || s.ends_with('$') {
+        return Err(crate::Error::RegexExplicitlyAnchored);
+    }
+    Ok(Regex::new(&format!("^{}$", s))?)
 }
 
 // Raw format for deserializing the rule files, requires more validation
@@ -172,8 +185,7 @@ mod tests {
         let permissions = rule
             .check_rest_request(&claims, &RestMethod::Get, "/bar")
             .unwrap();
-        //assert_eq!(permissions, None);
-        // TODO: not implemented yet!
+        assert_eq!(permissions, None);
     }
 
     #[test]
@@ -214,6 +226,26 @@ mod tests {
         "#;
         assert!(matches!(Rule::from_str(rule_str), Err(_)));
 
+        // Bad regex.
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = ["/(unclosed/"]
+            permissions = ["repo:read"]
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
+        // Explicitly anchored regex.
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = ["^/foo$"]
+            permissions = ["repo:read"]
+        "#;
+        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+
         // No permissions.
         let rule_str = r#"
             claims = "true"
@@ -224,5 +256,57 @@ mod tests {
         "#;
         assert!(matches!(Rule::from_str(rule_str), Err(_)));
     }
+
+    // TODO: This test would be more useful when we have some custom rules, not using regexes.
+    #[test]
+    fn test_route_matches() {
+        let rule_str = r#"
+            claims = "true"
+            [[rest]]
+            methods = ["GET"]
+            routes = [
+                "/foo",
+                "/orgs/[^/]+/members",
+                "/users/(alice|bob)/repos",
+            ]
+            permissions = ["repo:read"]
+        "#;
+        let rule = Rule::from_str(rule_str).unwrap();
+
+        let claims = client_auth::Claims {
+            known: None,
+            raw_claims: serde_json::json!({}),
+        };
+
+        assert!(matches!(
+            rule.check_rest_request(&claims, &RestMethod::Get, "/foo"),
+            Ok(Some(_))
+        ));
+        assert!(matches!(
+            rule.check_rest_request(&claims, &RestMethod::Get, "/foo/bar"),
+            Ok(None)
+        ));
+        assert!(matches!(
+            rule.check_rest_request(&claims, &RestMethod::Get, "/orgs/arbitrary/members"),
+            Ok(Some(_))
+        ));
+        assert!(matches!(
+            rule.check_rest_request(
+                &claims,
+                &RestMethod::Get,
+                "/orgs/sneaky/extra/segments/members"
+            ),
+            Ok(None)
+        ));
+        assert!(matches!(
+            rule.check_rest_request(&claims, &RestMethod::Get, "/users/alice/repos"),
+            Ok(Some(_))
+        ));
+        assert!(matches!(
+            rule.check_rest_request(&claims, &RestMethod::Get, "/users/charlie/repos"),
+            Ok(None)
+        ));
+    }
+
     // TODO: check CEL programs
 }
