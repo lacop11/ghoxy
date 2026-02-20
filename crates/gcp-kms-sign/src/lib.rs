@@ -89,7 +89,9 @@ impl GcpKmsKeyVersion {
         let key_version = Self {
             auth_provider,
             key_version_name: key_version_name.to_string(),
-            gcp_kms_api_base_url: gcp_kms_api_base_url.unwrap_or("https://cloudkms.googleapis.com").to_string(),
+            gcp_kms_api_base_url: gcp_kms_api_base_url
+                .unwrap_or("https://cloudkms.googleapis.com")
+                .to_string(),
         };
 
         let metadata = key_version.get_medatadata().await?;
@@ -111,10 +113,7 @@ impl GcpKmsKeyVersion {
         let client = reqwest::Client::new();
         let token = self.auth_provider.token(SCOPES).await?;
 
-        let url = format!(
-            "{}/v1/{}",
-            self.gcp_kms_api_base_url, self.key_version_name
-        );
+        let url = format!("{}/v1/{}", self.gcp_kms_api_base_url, self.key_version_name);
 
         let resp = client.get(&url).bearer_auth(token.as_str()).send().await?;
 

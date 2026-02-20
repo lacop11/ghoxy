@@ -5,8 +5,8 @@ use axum::{body::Body, response::IntoResponse};
 use crate::error::{ProxyError, ProxyResult};
 use crate::user_agent;
 use rules::RuleSet;
-use tracing::info;
 use token::Token;
+use tracing::info;
 
 pub struct ProxyOptions {
     pub client_token_validator: client_auth::TokenValidator,

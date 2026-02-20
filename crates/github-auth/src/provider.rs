@@ -3,7 +3,7 @@ use std::sync::Arc;
 use gcp_kms_sign::GcpKmsKeyVersion;
 use tracing::info;
 
-use crate::{Permissions, Result, Error};
+use crate::{Error, Permissions, Result};
 use token::Token;
 
 pub struct GithubTokenProviderOptions {
@@ -39,17 +39,20 @@ impl GithubTokenProvider {
         // here and only call create_installation_access_token once (which is great, we want that), so if
         // something fails the error must be shared by several callers. Sadly reqwest::Error and some other
         // libraries don't have Clone on error types so we have to do manual map_err(Arc::new) in few places.
-        self.token_cache.try_get_with_by_ref(
-            permissions,
-            self.create_installation_access_token(permissions),
-        ).await.map_err(Arc::unwrap_or_clone)
+        self.token_cache
+            .try_get_with_by_ref(
+                permissions,
+                self.create_installation_access_token(permissions),
+            )
+            .await
+            .map_err(Arc::unwrap_or_clone)
     }
 
-    async fn create_installation_access_token(
-        &self,
-        permissions: &Permissions,
-    ) -> Result<Token> {
-        info!("Creating new installation access token with permissions: {:?}", permissions);
+    async fn create_installation_access_token(&self, permissions: &Permissions) -> Result<Token> {
+        info!(
+            "Creating new installation access token with permissions: {:?}",
+            permissions
+        );
         // Create new JWT token signed by the KMS. We could cache this too, but this function
         // is only called if we don't have a cached installation token, so there is already
         // one layer of caching on top of this, no need to cache the JWT separately.
@@ -95,7 +98,9 @@ impl GithubTokenProvider {
         // than what github promises, so this should never happen, but better
         // to get an explicit error than weird behavior.
         let token_lifetime = response.expires_at - chrono::Utc::now();
-        if token_lifetime < chrono::Duration::from_std(GITHUB_TOKEN_CACHE_TTL * 2).expect("won't fail") {
+        if token_lifetime
+            < chrono::Duration::from_std(GITHUB_TOKEN_CACHE_TTL * 2).expect("won't fail")
+        {
             return Err(Error::GithubTokenDurationTooShort(token_lifetime));
         }
 
@@ -143,9 +148,11 @@ impl GithubTokenProvider {
             base64_url_encoded(&serde_json::to_vec(&claims).map_err(Arc::new)?),
         );
         let signature = self
-            .options.app_key_kms
+            .options
+            .app_key_kms
             .asymmetric_sign(partial_jwt.as_bytes())
-            .await.map_err(Arc::new)?;
+            .await
+            .map_err(Arc::new)?;
         let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);
         Ok(Token::new(signed_jwt))
     }
