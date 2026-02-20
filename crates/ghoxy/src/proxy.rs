@@ -116,8 +116,9 @@ impl Proxy {
             )
             .await;
         } else if remaining_path == "/api/graphql" {
-            // TODO: check method is POST (or GET for introspection query).
-            panic!("graphql not supported yet");
+            // TODO: Check method is POST (or GET for introspection query).
+            // TODO: Implement graphql handling, needs rule support...
+            return Err(ProxyError::UnsupportedGraphqlMethod); // placeholder error
         }
 
         Err(ProxyError::InvalidRequestPath)

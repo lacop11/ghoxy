@@ -38,6 +38,7 @@ async fn main() {
         .expect("Invalid permissions");
     let github_token_provider =
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
+            github_api_base_url: "https://api.github.com".to_string(),
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
             app_key_kms: GcpKmsKeyVersion::new(&args.app_private_key_kms_path, None)

@@ -56,3 +56,42 @@ all / structured ideas:
   - improve docs, require doc strings
   - build version embed
     - ideally main binary crate cargo.toml also says version 0.0.0 and we inject git tag version in the build pipeline automatically so we don't have to keep in sync
+
+
+from claude review, filtered down to the actually useful stuff (lots of duplication with above though):
+- Request Body Not Proxied (proxy.rs:145, 156)
+  Fix: Implement proper body reading and forwarding
+- Unvalidated app_installation_id (provider.rs:28)
+  Installation ID directly interpolated into URL without numeric validation Risk: Potential URL injection
+- No GitHub Permissions Validation (permissions.rs)
+  Invalid permissions silently accepted, fail only at runtime
+- No CEL Rule Validation at Parse Time (rule.rs:29-31)
+  Invalid CEL expressions only fail when requests arrive
+  Fix: Validate with sample claims during rule loading
+- HTTP Method Validation Missing (rule.rs:94)
+  Fix: Whitelist standard HTTP methods only
+- Response Headers Not Proxied (proxy.rs:163)
+  Missing rate limits, ETag, pagination links, Content-Type, etc.
+  Impact: Clients can't handle pagination or rate limiting
+- Request Headers Not Filtered (proxy.rs:148)
+  No whitelist/validation of forwarded headers
+- No Request Timeouts
+  HTTP requests can hang indefinitely
+  Fix: Add configurable timeouts
+- Connection Pooling Not Reused (proxy.rs:147)
+  New reqwest::Client created per request
+  Impact: Connection overhead, no reuse
+- No Configuration Validation (server.rs)
+  Doesn't check if ruleset_dir exists, URLs valid, etc.
+  Fix: Validate all config at startup
+- No TLS Documentation
+  Server binds to plain TCP; TLS must be external
+  Fix: Document requirement for reverse proxy/TLS termination
+- GCP KMS Creates New Client Per Request (lib.rs:113, 134)
+  Resource overhead and potential connection exhaustion
+- Inconsistent Safety Policy Enforcement
+  #![deny(clippy::unwrap_used)] not applied to all crates
+  Some crates use .expect() liberally despite policy
+- Missing Claims Parsing Tests (claims.rs:142)
+  No tests for critical claim extraction logic
+- Incomplete Documentation (README.md:47-55)

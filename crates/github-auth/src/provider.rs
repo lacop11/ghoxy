@@ -7,6 +7,7 @@ use tracing::info;
 use crate::{Error, Permissions, Result};
 
 pub struct GithubTokenProviderOptions {
+    pub github_api_base_url: String,
     pub app_client_id: String,
     pub app_installation_id: String,
     pub app_key_kms: GcpKmsKeyVersion,
@@ -21,7 +22,7 @@ pub struct GithubTokenProvider {
 // Github promises token lifetime of one hour, can't be changed.
 // Setting cache TTL much lower, the goal is to just reduct number of requests, eg. during
 // TF provider request bursts, but not need to keep the token for the full hour.
-const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(5); //from_mins(5);
+const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_mins(5);
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
@@ -63,9 +64,8 @@ impl GithubTokenProvider {
         let client = reqwest::Client::new();
         let response = client
             .post(format!(
-                // TODO: replace with github base url from options
-                "https://api.github.com/app/installations/{}/access_tokens",
-                self.options.app_installation_id
+                "{}/app/installations/{}/access_tokens",
+                self.options.github_api_base_url, self.options.app_installation_id
             ))
             .bearer_auth(jwt.get_sensitive_value())
             .header("Accept", "application/vnd.github+json")

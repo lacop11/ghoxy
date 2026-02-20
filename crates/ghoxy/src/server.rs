@@ -119,6 +119,7 @@ pub async fn create_server(
 
     let github_token_provider =
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
+            github_api_base_url: args.github_base_url.clone(),
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
             app_key_kms: GcpKmsKeyVersion::new(
