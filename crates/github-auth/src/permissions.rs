@@ -1,7 +1,7 @@
 use crate::Result;
 
 // Must be usable as key in HashMap.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Permissions {
     scope_access_pairs: Vec<(String, String)>,
 }
@@ -41,5 +41,19 @@ impl Permissions {
             map.insert(scope.clone(), serde_json::Value::String(access.clone()));
         }
         serde_json::Value::Object(map)
+    }
+}
+
+impl std::fmt::Debug for Permissions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Format as comma separated list of scope:access pairs.
+        write!(f, "Permissions(")?;
+        for (i, (scope, access)) in self.scope_access_pairs.iter().enumerate() {
+            if i > 0 {
+                write!(f, ",")?;
+            }
+            write!(f, "{}:{}", scope, access)?;
+        }
+        write!(f, ")")
     }
 }

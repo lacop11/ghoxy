@@ -1,6 +1,9 @@
-use gcp_kms_sign::GcpKmsKeyVersion;
+use std::sync::Arc;
 
-use crate::{Permissions, Result};
+use gcp_kms_sign::GcpKmsKeyVersion;
+use tracing::info;
+
+use crate::{Permissions, Result, Error};
 
 pub struct GithubTokenProviderOptions {
     pub app_client_id: String,
@@ -11,38 +14,49 @@ pub struct GithubTokenProviderOptions {
 
 pub struct GithubTokenProvider {
     options: GithubTokenProviderOptions,
-    // TODO: token caches, keyed by permissions, should store expiration time so if too short we can refresh
+    token_cache: moka::future::Cache<Permissions, String>,
 }
+
+// Github promises token lifetime of one hour, can't be changed.
+// Setting cache TTL much lower, the goal is to just reduct number of requests, eg. during
+// TF provider request bursts, but not need to keep the token for the full hour.
+const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(5); //from_mins(5);
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
         // TODO: Validate app_installation_id is numeric
         Ok(GithubTokenProvider {
             options,
+            token_cache: moka::future::Cache::builder()
+                .time_to_live(GITHUB_TOKEN_CACHE_TTL)
+                .build(),
         })
     }
 
     // TODO: return token as wrapper which prevents logging
     pub async fn get_installation_access_token(&self, permissions: &Permissions) -> Result<String> {
-        // TODO: caching logic, this should only be called when we don't have a valid one or it
-        // is expiring soon, and have to store the response + block multiple concurrent calls for the
-        // same set of permissions to only do one request.
-        let (token, _expires_at) = self.create_installation_access_token(permissions).await?;
-        Ok(token)
+        // Note: The Arc around errors is because the moka cache will coalesce multiple concurrent calls
+        // here and only call create_installation_access_token once (which is great, we want that), so if
+        // something fails the error must be shared by several callers. Sadly reqwest::Error and some other
+        // libraries don't have Clone on error types so we have to do manual map_err(Arc::new) in few places.
+        self.token_cache.try_get_with_by_ref(
+            permissions,
+            self.create_installation_access_token(permissions),
+        ).await.map_err(Arc::unwrap_or_clone)
     }
 
     // TODO: return token as wrapper which prevents logging
     async fn create_installation_access_token(
         &self,
         permissions: &Permissions,
-    ) -> Result<(String, chrono::DateTime<chrono::Utc>)> {
-        // Create new JWT token. We could cache this too, but this function is only called if we
-        // don't have a cached installation token, so there is already one layer of caching on
-        // top of this, no need to cache the JWT separately.
+    ) -> Result<String> {
+        info!("Creating new installation access token with permissions: {:?}", permissions);
+        // Create new JWT token signed by the KMS. We could cache this too, but this function
+        // is only called if we don't have a cached installation token, so there is already
+        // one layer of caching on top of this, no need to cache the JWT separately.
         let jwt = self.create_signed_jwt().await?;
 
         // Exchange the JWT for an installation access token.
-        // Lifetime can't be controlled, it's always one hour.
         // https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#create-an-installation-access-token-for-an-app
         let client = reqwest::Client::new();
         let response = client
@@ -54,13 +68,13 @@ impl GithubTokenProvider {
             .bearer_auth(jwt.as_str())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
-            // TODO: make this repo path or something
             .header("User-Agent", &self.options.user_agent)
             .json(&serde_json::json!({
                 "permissions": permissions.to_json_map(),
             }))
             .send()
-            .await?;
+            .await
+            .map_err(Arc::new)?;
 
         #[derive(Debug, serde::Deserialize)]
         struct InstallationTokenResponse {
@@ -68,15 +82,25 @@ impl GithubTokenProvider {
             expires_at: chrono::DateTime<chrono::Utc>,
         }
 
-        if response.status().is_success() {
-            let response: InstallationTokenResponse = response.json().await?;
-            return Ok((response.token, response.expires_at));
+        if !response.status().is_success() {
+            return Err(Error::GithubTokenRequestFailed(
+                response.status().as_u16(),
+                response.text().await.map_err(Arc::new)?,
+            ));
         }
 
-        Err(crate::Error::GithubTokenRequestFailed(
-            response.status().as_u16(),
-            response.text().await?,
-        ))
+        let response: InstallationTokenResponse = response.json().await.map_err(Arc::new)?;
+
+        // Make sure the lifetime is at least twice the cache TTL, to avoid
+        // caching tokens that are about to expire. We cache for lot shorter
+        // than what github promises, so this should never happen, but better
+        // to get an explicit error than weird behavior.
+        let token_lifetime = response.expires_at - chrono::Utc::now();
+        if token_lifetime < chrono::Duration::from_std(GITHUB_TOKEN_CACHE_TTL * 2).expect("won't fail") {
+            return Err(Error::GithubTokenDurationTooShort(token_lifetime));
+        }
+
+        Ok(response.token)
     }
 
     // TODO: Isn't it weird this doesn't have any nonce or something?
@@ -117,13 +141,13 @@ impl GithubTokenProvider {
 
         let partial_jwt = format!(
             "{}.{}",
-            base64_url_encoded(&serde_json::to_vec(&header)?),
-            base64_url_encoded(&serde_json::to_vec(&claims)?),
+            base64_url_encoded(&serde_json::to_vec(&header).map_err(Arc::new)?),
+            base64_url_encoded(&serde_json::to_vec(&claims).map_err(Arc::new)?),
         );
         let signature = self
             .options.app_key_kms
             .asymmetric_sign(partial_jwt.as_bytes())
-            .await?;
+            .await.map_err(Arc::new)?;
         let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);
         Ok(signed_jwt)
     }

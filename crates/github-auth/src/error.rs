@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 #[allow(missing_docs)]
 pub enum Error {
     #[error("GCP KMS error: {0}")]
-    KmsError(#[from] gcp_kms_sign::Error),
+    KmsError(#[from] Arc<gcp_kms_sign::Error>),
 
     #[error("Serialization error: {0}")]
-    SerializationError(#[from] serde_json::Error),
+    SerializationError(#[from] Arc<serde_json::Error>),
 
     #[error("HTTP request error: {0}")]
-    HttpRequestError(#[from] reqwest::Error),
+    HttpRequestError(#[from] Arc<reqwest::Error>),
 
     #[error("Github token request failed with status code: {0}, message: {1}")]
     GithubTokenRequestFailed(u16, String),
@@ -25,6 +27,9 @@ pub enum Error {
 
     #[error("Duplicate permission scope requested: {0}")]
     DuplicatePermissionScope(String),
+
+    #[error("Returned github token duration is too short: {0}")]
+    GithubTokenDurationTooShort(chrono::TimeDelta),
 }
 
 /// Result type for github-auth operations.
