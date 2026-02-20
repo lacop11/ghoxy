@@ -201,7 +201,13 @@ async fn proxy_validated_github_rest_request(
         .send()
         .await
         .map_err(ProxyError::HttpClientError)?;
-    info!(path=path, method=?method, status=?response.status(), "Received response from github");
+    info!(
+        path=path,
+        method=?method,
+        status=?response.status(),
+        request_id=?response.headers().get("x-github-request-id"),
+        "Received response from github"
+    );
 
     let mut response_builder = Response::builder().status(response.status());
     // Proxy allowed response headers.

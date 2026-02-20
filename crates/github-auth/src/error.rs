@@ -31,8 +31,6 @@ pub enum Error {
     #[error("Returned github token duration is too short: {0}")]
     GithubTokenDurationTooShort(chrono::TimeDelta),
 
-    #[error("Invalid github app client id: {0}")]
-    InvalidGithubAppClientId(String),
     #[error("Invalid github app installation id: {0}")]
     InvalidGithubAppInstallationId(String),
 }

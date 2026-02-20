@@ -26,12 +26,8 @@ const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_mi
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
-        // App id and installation ids should be numeric.
-        // The size is not specified by github but we at least check its all digits,
-        // this avoids any url encoding shenanigans when sending requests.
-        if !options.app_client_id.chars().all(|c| c.is_ascii_digit()) {
-            return Err(Error::InvalidGithubAppClientId(options.app_client_id));
-        }
+        // Installation ids should be numeric. The size is not specified by github, but we at least
+        // check its all digits, this avoids any url encoding shenanigans when sending requests.
         if !options
             .app_installation_id
             .chars()

@@ -1,8 +1,26 @@
 next up / semi-sorted by priority:
-- test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
-- revisit the rule config style / semantics, write some actual rules for usable TF to see how it feels and if its easy/feasible to do useful things with it
-- clean up tracing / logging, it's a huge mess, might need redaction in places
-- after all this works continue making improvements below
+- clean up integration test, finish up the full handling
+  - override gcp auth credentials, should not actually get real ones (set some env var in the test?)
+  - provide test config dir
+  - send some requests, check sent headers/body, check proxied response, etc
+  - refactor the init bits so we can have a few integration tests easily
+- make TF repo for basic github stuff
+  - readonly and rewrite roles
+  - all the basic stuff for repos, teams, rulesets, etc
+  - this is good chance to see how ergonomic the config is and if it needs changes to semantics
+- clean up sample configs with above and have better examples
+- better config validation, CEL program checks against dummy claims, better claim ergonomics/naming
+  - extract more fields from github claims
+- go through code TODO/FIXME and clean up, categorize into nice to have / blocking
+- clean up logging and tracing
+  - mainly some traceid to link multiple log lines for a request?
+  - better debug for rejected rules, return more explicit reason maybe? eg. blocked by CEL, no path+method match, etc
+    - return Result<RuleOutcome>, error on real error, otherwise RuleOutcome { Allowed(Permission), Rejected(Reason) }
+- get docker build from nix working
+- make CI pipeline (build, check, deny, clippy, format, everything)
+- after all that go through the big lists below, some might be obsolete / irrelevant
+
+=======
 
 all / structured ideas:
 - finish up docs
