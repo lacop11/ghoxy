@@ -181,7 +181,7 @@ async fn proxy_validated_github_rest_request(
     method: http::Method,
     github_token: &Token,
     headers: http::HeaderMap,
-    _body: Body,
+    body: Body,
 ) -> ProxyResult<impl IntoResponse + use<>> {
     let client = reqwest::Client::new();
     let mut req_builder = client
@@ -195,7 +195,7 @@ async fn proxy_validated_github_rest_request(
     }
     // Always override with our own user agent
     let req_builder = req_builder.header("User-Agent", user_agent::USER_AGENT);
-    // TODO send body, if any.
+    let req_builder = req_builder.body(reqwest::Body::wrap_stream(body.into_data_stream()));
 
     let response = req_builder
         .send()

@@ -1,0 +1,11 @@
+claims = """true"""
+
+[[rest]]
+methods = ["POST"]
+routes = ["/repos/[^/]+/[^/]+/issues"]
+permissions = [
+    "issues:write",
+]
+
+# TODO: restrict to repos, something like:
+# repositories = ["org/repo1", "org/repo2"]
