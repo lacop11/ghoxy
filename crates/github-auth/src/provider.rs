@@ -4,6 +4,7 @@ use gcp_kms_sign::GcpKmsKeyVersion;
 use tracing::info;
 
 use crate::{Permissions, Result, Error};
+use token::Token;
 
 pub struct GithubTokenProviderOptions {
     pub app_client_id: String,
@@ -14,7 +15,7 @@ pub struct GithubTokenProviderOptions {
 
 pub struct GithubTokenProvider {
     options: GithubTokenProviderOptions,
-    token_cache: moka::future::Cache<Permissions, String>,
+    token_cache: moka::future::Cache<Permissions, Token>,
 }
 
 // Github promises token lifetime of one hour, can't be changed.
@@ -33,8 +34,7 @@ impl GithubTokenProvider {
         })
     }
 
-    // TODO: return token as wrapper which prevents logging
-    pub async fn get_installation_access_token(&self, permissions: &Permissions) -> Result<String> {
+    pub async fn get_installation_access_token(&self, permissions: &Permissions) -> Result<Token> {
         // Note: The Arc around errors is because the moka cache will coalesce multiple concurrent calls
         // here and only call create_installation_access_token once (which is great, we want that), so if
         // something fails the error must be shared by several callers. Sadly reqwest::Error and some other
@@ -45,11 +45,10 @@ impl GithubTokenProvider {
         ).await.map_err(Arc::unwrap_or_clone)
     }
 
-    // TODO: return token as wrapper which prevents logging
     async fn create_installation_access_token(
         &self,
         permissions: &Permissions,
-    ) -> Result<String> {
+    ) -> Result<Token> {
         info!("Creating new installation access token with permissions: {:?}", permissions);
         // Create new JWT token signed by the KMS. We could cache this too, but this function
         // is only called if we don't have a cached installation token, so there is already
@@ -65,7 +64,7 @@ impl GithubTokenProvider {
                 "https://api.github.com/app/installations/{}/access_tokens",
                 self.options.app_installation_id
             ))
-            .bearer_auth(jwt.as_str())
+            .bearer_auth(jwt.get_sensitive_value())
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .header("User-Agent", &self.options.user_agent)
@@ -100,15 +99,14 @@ impl GithubTokenProvider {
             return Err(Error::GithubTokenDurationTooShort(token_lifetime));
         }
 
-        Ok(response.token)
+        Ok(Token::new(response.token))
     }
 
     // TODO: Isn't it weird this doesn't have any nonce or something?
-    // TODO: Wrap in Token type too
     /// Constructs a JWT signed using our Github App private key.
     /// This can then be exchanged for installation access token using Github API.
     /// Reference: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
-    async fn create_signed_jwt(&self) -> Result<String> {
+    async fn create_signed_jwt(&self) -> Result<Token> {
         // TODO: The jsonwebtoken crate only supports keys that are directly passed in, not as KMS / sign callback.
         // Consider contributing support for that (eg. add `asymmetric_sign_with` that takes a closure or trait object).
         // Until then we construct the JWT manually, it's not that hard.
@@ -149,7 +147,7 @@ impl GithubTokenProvider {
             .asymmetric_sign(partial_jwt.as_bytes())
             .await.map_err(Arc::new)?;
         let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);
-        Ok(signed_jwt)
+        Ok(Token::new(signed_jwt))
     }
 }
 

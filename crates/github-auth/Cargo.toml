@@ -6,6 +6,7 @@ edition = "2024"
 
 [dependencies]
 gcp-kms-sign = { path = "../gcp-kms-sign" }
+token = { path = "../token" }
 
 base64 = "0.22.1"
 chrono = "0.4.43"

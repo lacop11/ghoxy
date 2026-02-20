@@ -9,6 +9,7 @@ gcp-kms-sign = { path = "../gcp-kms-sign" }
 client-auth = { path = "../client-auth" }
 github-auth = { path = "../github-auth" }
 rules = { path = "../rules" }
+token = { path = "../token" }
 
 http = "1.4.0"
 tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }

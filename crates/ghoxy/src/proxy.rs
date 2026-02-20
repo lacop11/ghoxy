@@ -6,6 +6,7 @@ use crate::error::{ProxyError, ProxyResult};
 use crate::user_agent;
 use rules::RuleSet;
 use tracing::info;
+use token::Token;
 
 pub struct ProxyOptions {
     pub client_token_validator: client_auth::TokenValidator,
@@ -136,14 +137,14 @@ fn extract_bearer_token(req: &Request<Body>) -> ProxyResult<String> {
 async fn proxy_validated_github_rest_request(
     path: &str,
     method: http::Method,
-    github_token: &str,
+    github_token: &Token,
     _body: Body,
 ) -> ProxyResult<impl IntoResponse + use<>> {
     let client = reqwest::Client::new();
     // TODO: Do we need to proxy any headers?
     let req_builder = client
         .request(method.clone(), path)
-        .bearer_auth(github_token)
+        .bearer_auth(github_token.get_sensitive_value())
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         // TODO: move to crate::user_agent constant including version number / repo path maybe.
