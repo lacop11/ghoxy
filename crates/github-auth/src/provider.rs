@@ -73,6 +73,8 @@ impl GithubTokenProvider {
             .header("User-Agent", &self.options.user_agent)
             .json(&serde_json::json!({
                 "permissions": permissions.to_json_map(),
+                // FIXME: send repositories list to further restrict the token scope,
+                // the list of repos must be part of the cache key.
             }))
             .send()
             .await

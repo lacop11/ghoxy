@@ -2,8 +2,6 @@ next up / semi-sorted by priority:
 - test end to end with github tf provider on the sandbox org, giving it jwt token from actions + overriding the baseurl
 - revisit the rule config style / semantics, write some actual rules for usable TF to see how it feels and if its easy/feasible to do useful things with it
 - clean up tracing / logging, it's a huge mess, might need redaction in places
-- caching of tokens
-- background refresh of jwks
 - after all this works continue making improvements below
 
 all / structured ideas:
@@ -14,29 +12,21 @@ all / structured ideas:
     - can do app manifest + callback to do the private key -> KMS without storing on disk?
 - implementation bits
   - functionality
-    - github auth crate
-      - caching, deduped cache refresh on miss or when expiring soon
     - rules crate
-      - parsing and validating rules
+      - parsing and validating rules, make sure the CEL program is kind of valid at least
       - evaluating if request is allowed and which rule applies
-        - what if multiple apply? could be weird if it has distinct permissions, maybe some priority order?
-          - maybe can have identifier as path of url? eg rules/ folder with file some-rule -> can be used with baseurl=https://proxy/rule/some-rule/ (after this /orgs/foo/bar gets appended). This way client must specify as part of the base url override which rule they intend to use, removes ambiguity, also easier to find all usages of a rule
-      - how to encode the rule config files? don't want yaml
-        - CEL expression, needs to allow multiline
-        - allow comments
-        - list of scopes and routes / regexes, also multiling
-        - maybe toml would work but then have to do CEL escaping?
-          - actually with multiline string this might be fine
     - main binary
-      - proxy
       - logging
         - every request must be carefully logged, don't leak any secrets in logs but have comprehensive audits
-      - background refresh stuff (or fix libs to do that internally)
     - review all TODOs and clarify if they are blocking FIXMEs, nice to have TODOs or if they need security review attention
   - security
     - review deps, reduce dependency tree
     - stricter cargo deny config
     - stricter clippy rules, deny unwrap/panic/todo!/etc
+  - restrict token to repositories as well?
+  - endpoint to give out the installation token like in octosts
+    - alternative configuration needed for this (maybe third allow type in addition to rest/graphql)
+    - in cases we don't want to proxy and just give out 1 hour scoped down token to caller
   - improvements
     - logging/tracing, gcp compatible structured logs, lb trace ids?
     - kms audit logs (not working in sandbox for some reason)

@@ -25,5 +25,10 @@ permissions = [
     "members:read",
 ]
 
+# TODO: restrict to repos, something like:
+# all_repos = true
+# or
+# repositories = ["org/repo1", "org/repo2"]
+
 # TODO: more test cases for multiple rules, routes, methods
 # TODO: graphql rule support
