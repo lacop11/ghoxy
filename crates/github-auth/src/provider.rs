@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use gcp_kms_sign::GcpKmsKeyVersion;
+use token::Token;
 use tracing::info;
 
 use crate::{Error, Permissions, Result};
-use token::Token;
 
 pub struct GithubTokenProviderOptions {
     pub app_client_id: String,

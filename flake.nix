@@ -34,10 +34,21 @@
     in
     {
       overlays.default = final: prev: {
-        rustToolchain = inputs.fenix.packages.${prev.stdenv.hostPlatform.system}.fromToolchainFile {
-          file = ./rust-toolchain.toml;
-          sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
-        };
+        rustToolchain =
+          let
+            fenixPkgs = inputs.fenix.packages.${prev.stdenv.hostPlatform.system};
+            stableToolchain = fenixPkgs.fromToolchainFile {
+              file = ./rust-toolchain.toml;
+              sha256 = "sha256-sqSWJDUxc+zaz1nBWMAJKTAGBuGWP25GCftIOlCEAtA=";
+            };
+          in
+          fenixPkgs.combine [
+            # Latest rustfmt, we want some nightly/unstable features.
+            # This does not impact the produced binaries so there is no risk.
+            fenixPkgs.latest.rustfmt
+            # Stable everything else/
+            stableToolchain
+          ];
       };
 
       devShells = forEachSupportedSystem (

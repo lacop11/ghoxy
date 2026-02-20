@@ -1,12 +1,16 @@
-use axum::http::Request;
-use axum::response::Response;
-use axum::{body::Body, response::IntoResponse};
-
-use crate::error::{ProxyError, ProxyResult};
-use crate::user_agent;
+use axum::{
+    body::Body,
+    http::Request,
+    response::{IntoResponse, Response},
+};
 use rules::RuleSet;
 use token::Token;
 use tracing::info;
+
+use crate::{
+    error::{ProxyError, ProxyResult},
+    user_agent,
+};
 
 pub struct ProxyOptions {
     pub client_token_validator: client_auth::TokenValidator,

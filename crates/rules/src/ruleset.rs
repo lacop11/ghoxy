@@ -1,5 +1,6 @@
-use crate::{Error, Result, Rule};
 use std::collections::BTreeMap;
+
+use crate::{Error, Result, Rule};
 
 pub struct RuleSet {
     rules: BTreeMap<String, Rule>,

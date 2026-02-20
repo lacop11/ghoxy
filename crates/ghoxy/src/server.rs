@@ -1,17 +1,17 @@
-use axum::Router;
-use axum::body::Body;
-use axum::extract::State;
-use axum::http::{Request, StatusCode};
-use axum::response::IntoResponse;
-use gcp_kms_sign::GcpKmsKeyVersion;
-
-use crate::proxy::Proxy;
 use std::{net::SocketAddr, sync::Arc};
+
+use axum::{
+    Router,
+    body::Body,
+    extract::State,
+    http::{Request, StatusCode},
+    response::IntoResponse,
+};
+use clap::Parser;
+use gcp_kms_sign::GcpKmsKeyVersion;
 use tracing::info;
 
-use clap::Parser;
-
-use crate::error::ServerResult;
+use crate::{error::ServerResult, proxy::Proxy};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]

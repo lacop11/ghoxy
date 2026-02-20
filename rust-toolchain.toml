@@ -1,5 +1,6 @@
 [toolchain]
 channel = "1.92.0"
-components = ["rustc", "cargo", "rustfmt", "clippy", "rust-src"]
+# Note: rustfmt not included here, we use nightly version for that.
+components = ["rustc", "cargo", "clippy", "rust-src"]
 profile = "minimal"
 targets = []

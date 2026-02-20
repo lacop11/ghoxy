@@ -1,10 +1,8 @@
-use aws_lc_rs::encoding::AsDer;
-use aws_lc_rs::signature::KeyPair;
+use aws_lc_rs::{encoding::AsDer, signature::KeyPair};
 use base64::Engine;
 // Integration tests mocking all external dependencies (Github, OIDC issuer and GCP KMS).
 use httpmock::prelude::*;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // TODO: Extract the mock and setup bits into shared library and make the actual tests simpler.
 #[tokio::test]

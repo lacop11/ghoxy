@@ -1,5 +1,6 @@
-use crate::Result;
 use regex::Regex;
+
+use crate::Result;
 
 #[derive(Debug)]
 pub struct Rule {
