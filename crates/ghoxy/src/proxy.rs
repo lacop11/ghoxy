@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use axum::{
     body::Body,
     http::Request,
     response::{IntoResponse, Response},
 };
+use http::header::HeaderName;
 use rules::RuleSet;
 use token::Token;
 use tracing::info;
@@ -54,7 +57,7 @@ impl Proxy {
         // TODO: Better trace logging, what is safe to log? URL always safe, no secrets? Can we log some headers
         // (not the token!), and maybe the body (if not too big, no sensitive fields), especially for graphql
         // query we should log it.
-        info!(method = ?req.method(), uri = ?req.uri(), "Handling request");
+        info!(method = ?req.method(), uri = ?req.uri(), user_agent = ?req.headers().get("User-Agent"), "Handling request");
 
         // Extract JWT from auth header and check the claims.
         // This does not indicate the client is trusted but we can reject completely invalid tokens early.
@@ -108,11 +111,13 @@ impl Proxy {
                 .await?;
 
             let full_request_url = format!("{}{}", self.github_base_url, api_path);
+            let (parts, body) = req.into_parts();
             return proxy_validated_github_rest_request(
                 &full_request_url,
-                req.method().clone(),
+                parts.method,
                 &github_token,
-                req.into_body(),
+                parts.headers,
+                body,
             )
             .await;
         } else if remaining_path == "/api/graphql" {
@@ -139,29 +144,72 @@ fn extract_bearer_token(req: &Request<Body>) -> ProxyResult<String> {
     Ok(token.to_string())
 }
 
+lazy_static::lazy_static! {
+    static ref ALLOWED_REQUEST_HEADERS: HashSet<HeaderName> = {
+        let mut set = HashSet::new();
+        // https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28#headers
+        set.insert(http::header::ACCEPT);
+        set.insert(HeaderName::from_static("x-github-api-version"));
+        set.insert(HeaderName::from_static("time-zone"));
+        set
+    };
+    static ref ALLOWED_RESPONSE_HEADERS: HashSet<HeaderName> = {
+        let mut set = HashSet::new();
+        // https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28#about-the-response-code-and-headers
+        set.insert(http::header::CACHE_CONTROL);
+        set.insert(http::header::CONTENT_TYPE);
+        set.insert(http::header::DATE);
+        set.insert(http::header::ETAG);
+        set.insert(http::header::LINK);
+        set.insert(HeaderName::from_static("x-accepted-oauth-scopes"));
+        set.insert(HeaderName::from_static("x-github-api-version-selected"));
+        set.insert(HeaderName::from_static("x-github-media-type"));
+        set.insert(HeaderName::from_static("x-github-request-id"));
+        set.insert(HeaderName::from_static("x-oauth-client-id"));
+        set.insert(HeaderName::from_static("x-oauth-scopes"));
+        set.insert(HeaderName::from_static("x-ratelimit-limit"));
+        set.insert(HeaderName::from_static("x-ratelimit-remaining"));
+        set.insert(HeaderName::from_static("x-ratelimit-reset"));
+        set.insert(HeaderName::from_static("x-ratelimit-resource"));
+        set.insert(HeaderName::from_static("x-ratelimit-used"));
+        set
+    };
+}
+
 async fn proxy_validated_github_rest_request(
     path: &str,
     method: http::Method,
     github_token: &Token,
+    headers: http::HeaderMap,
     _body: Body,
 ) -> ProxyResult<impl IntoResponse + use<>> {
     let client = reqwest::Client::new();
-    // TODO: Do we need to proxy any headers?
-    let req_builder = client
+    let mut req_builder = client
         .request(method.clone(), path)
-        .bearer_auth(github_token.get_sensitive_value())
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        // TODO: move to crate::user_agent constant including version number / repo path maybe.
-        .header("User-Agent", user_agent::USER_AGENT);
+        .bearer_auth(github_token.get_sensitive_value());
+    // Proxy allowed request headers.
+    for (name, value) in headers.iter() {
+        if ALLOWED_REQUEST_HEADERS.contains(name) {
+            req_builder = req_builder.header(name, value);
+        }
+    }
+    // Always override with our own user agent
+    let req_builder = req_builder.header("User-Agent", user_agent::USER_AGENT);
     // TODO send body, if any.
+
     let response = req_builder
         .send()
         .await
         .map_err(ProxyError::HttpClientError)?;
     info!(path=path, method=?method, status=?response.status(), "Received response from github");
-    let response_builder = Response::builder().status(response.status());
-    // TODO: do we need to return any headers?
+
+    let mut response_builder = Response::builder().status(response.status());
+    // Proxy allowed response headers.
+    for (name, value) in response.headers().iter() {
+        if ALLOWED_RESPONSE_HEADERS.contains(name) {
+            response_builder = response_builder.header(name, value);
+        }
+    }
     response_builder
         .body(Body::from_stream(response.bytes_stream()))
         .map_err(ProxyError::HttpResponseError)
