@@ -91,11 +91,7 @@ impl RuleRest {
         let methods = rest
             .methods
             .iter()
-            // TODO: Maybe force only subset of methods? Weird stuff like extensions shouold be rejected here.
-            .map(|m| {
-                m.parse::<http::Method>()
-                    .map_err(crate::Error::InvalidRestMethod)
-            })
+            .map(parse_method)
             .collect::<Result<Vec<_>>>()?;
         let routes = rest
             .routes
@@ -108,6 +104,17 @@ impl RuleRest {
             routes: check_not_empty(routes, crate::Error::EmptyPathList)?,
             permissions: github_auth::Permissions::from_permission_list(&rest.permissions)?,
         })
+    }
+}
+
+fn parse_method(method: &String) -> Result<http::Method> {
+    use http::Method;
+    let method = method.parse()?;
+    match method {
+        // Only some methods are allowed, we don't want to allow weird extensions.
+        // https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2022-11-28#http-method
+        Method::GET | Method::POST | Method::PUT | Method::DELETE | Method::PATCH => Ok(method),
+        _ => Err(crate::Error::RestMethodNotAllowed(method)),
     }
 }
 

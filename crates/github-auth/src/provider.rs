@@ -26,7 +26,21 @@ const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_mi
 
 impl GithubTokenProvider {
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
-        // TODO: Validate app_installation_id is numeric
+        // App id and installation ids should be numeric.
+        // The size is not specified by github but we at least check its all digits,
+        // this avoids any url encoding shenanigans when sending requests.
+        if !options.app_client_id.chars().all(|c| c.is_ascii_digit()) {
+            return Err(Error::InvalidGithubAppClientId(options.app_client_id));
+        }
+        if !options
+            .app_installation_id
+            .chars()
+            .all(|c| c.is_ascii_digit())
+        {
+            return Err(Error::InvalidGithubAppInstallationId(
+                options.app_installation_id,
+            ));
+        }
         Ok(GithubTokenProvider {
             options,
             token_cache: moka::future::Cache::builder()
@@ -109,7 +123,6 @@ impl GithubTokenProvider {
         Ok(Token::new(response.token))
     }
 
-    // TODO: Isn't it weird this doesn't have any nonce or something?
     /// Constructs a JWT signed using our Github App private key.
     /// This can then be exchanged for installation access token using Github API.
     /// Reference: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app

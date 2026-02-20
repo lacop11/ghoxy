@@ -15,6 +15,9 @@ pub enum Error {
     #[error("Invalid REST method: {0}")]
     InvalidRestMethod(#[from] http::method::InvalidMethod),
 
+    #[error("REST method not allowed: {0}")]
+    RestMethodNotAllowed(http::Method),
+
     #[error("Regex parse error: {0}")]
     RegexParseError(#[from] regex::Error),
     #[error("Regex is explictly anchored, remove ^/$, it is always added automatically")]
