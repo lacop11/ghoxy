@@ -72,5 +72,20 @@
           };
         }
       );
+
+      formatter = forEachSupportedSystem (
+        { pkgs }:
+        pkgs.writeShellApplication {
+          name = "formatter";
+          runtimeInputs = with pkgs; [
+            nixfmt
+            rustToolchain
+          ];
+          text = ''
+            nixfmt flake.nix
+            cargo fmt --all
+          '';
+        }
+      );
     };
 }
