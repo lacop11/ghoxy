@@ -58,7 +58,7 @@
       checks = forEachSupportedSystem (
         { pkgs }:
         {
-          pre-commit-check = inputs.pre-commit-hooks.lib.${pkgs.system}.run {
+          pre-commit-check = inputs.pre-commit-hooks.lib.${pkgs.stdenv.hostPlatform.system}.run {
             src = ./.;
             hooks = {
               nixpkgs-fmt.enable = true;
@@ -70,12 +70,12 @@
               };
               cargo-check = {
                 enable = true;
-                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo check";
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo check --all-targets";
                 pass_filenames = false;
               };
               cargo-clippy = {
                 enable = true;
-                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo clippy -- -D warnings";
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo clippy --all-targets -- -D warnings";
                 pass_filenames = false;
               };
               cargo-deny = {
@@ -108,7 +108,7 @@
             };
 
             shellHook = ''
-              ${self.checks.${pkgs.system}.pre-commit-check.shellHook}
+              ${self.checks.${pkgs.stdenv.hostPlatform.system}.pre-commit-check.shellHook}
             '';
           };
         }

@@ -1,4 +1,4 @@
-use aws_lc_rs::{encoding::AsDer, signature::KeyPair};
+use aws_lc_rs::signature::KeyPair;
 use base64::{Engine, prelude::*};
 // Integration tests mocking all external dependencies (Github, OIDC issuer and GCP KMS).
 use httpmock::prelude::*;
@@ -128,7 +128,7 @@ async fn test_end_to_end() {
         .header("content-type", "application/json")
         .body(
             serde_json::json!({
-                "signature": BASE64_STANDARD.encode(&dummy_signature),
+                "signature": BASE64_STANDARD.encode(dummy_signature),
             })
             .to_string(),
         );

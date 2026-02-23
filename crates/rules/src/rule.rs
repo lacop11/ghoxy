@@ -206,13 +206,13 @@ mod tests {
             routes = ["/foo"]
             permissions = ["repo:read"]
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // No rules.
         let rule_str = r#"
             claims = "true"
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // No methods.
         let rule_str = r#"
@@ -222,7 +222,7 @@ mod tests {
             routes = ["/foo"]
             permissions = ["repo:read"]
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // No routes.
         let rule_str = r#"
@@ -232,7 +232,7 @@ mod tests {
             routes = []
             permissions = ["repo:read"]
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // Bad regex.
         let rule_str = r#"
@@ -242,7 +242,7 @@ mod tests {
             routes = ["/(unclosed/"]
             permissions = ["repo:read"]
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // Explicitly anchored regex.
         let rule_str = r#"
@@ -252,7 +252,7 @@ mod tests {
             routes = ["^/foo$"]
             permissions = ["repo:read"]
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
 
         // No permissions.
         let rule_str = r#"
@@ -262,7 +262,7 @@ mod tests {
             routes = ["/foo"]
             permissions = []
         "#;
-        assert!(matches!(Rule::from_str(rule_str), Err(_)));
+        assert!(Rule::from_str(rule_str).is_err());
     }
 
     // TODO: This test would be more useful when we have some custom rules, not using regexes.
