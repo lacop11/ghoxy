@@ -7,46 +7,27 @@ use axum::{
     http::{Request, StatusCode},
     response::IntoResponse,
 };
-use clap::Parser;
 use gcp_kms_sign::GcpKmsKeyVersion;
 use tracing::info;
 
 use crate::{error::ServerResult, proxy::Proxy};
 
-#[derive(Parser, Debug)]
-#[command(version, about)]
-pub struct Args {
-    // TODO: Doc comments for all flags, suitable defaults (or lack of + required to be explicit).
-    #[arg(long, default_value = "127.0.0.1:3000")]
+pub struct ServerOptions {
     pub address: SocketAddr,
 
-    #[arg(long, required = true)]
     pub ruleset_dir: std::path::PathBuf,
 
-    #[arg(long, required = true)]
     pub expected_audience: String,
-    #[arg(
-        long,
-        use_value_delimiter = true,
-        default_value = "https://accounts.google.com,https://token.actions.githubusercontent.com"
-    )]
     pub allowed_issuers: Vec<String>,
-    #[arg(long, default_value_t = 60)]
     pub token_age_leeway_seconds: u32,
 
-    #[arg(long)]
     pub app_client_id: String,
-    #[arg(long)]
     pub app_installation_id: String,
-    #[arg(long)]
     pub app_private_key_kms_path: String,
 
-    #[arg(long, default_value = "https://api.github.com")]
     pub github_base_url: String,
-    #[arg(long)]
     pub gcp_kms_api_base_url: Option<String>,
 
-    #[arg(long, default_value_t = 30)]
     pub issuer_jwks_refresh_interval_seconds: u64,
 }
 
@@ -105,13 +86,13 @@ async fn proxy_request(
 }
 
 pub async fn create_server(
-    args: Args,
+    options: ServerOptions,
 ) -> ServerResult<axum::serve::Serve<tokio::net::TcpListener, Router, Router>> {
     let client_token_validator =
         client_auth::TokenValidator::from_options(client_auth::TokenValidatorOptions {
-            expected_audience: args.expected_audience,
-            allowed_issuers: args.allowed_issuers,
-            token_age_leeway_seconds: args.token_age_leeway_seconds,
+            expected_audience: options.expected_audience,
+            allowed_issuers: options.allowed_issuers,
+            token_age_leeway_seconds: options.token_age_leeway_seconds,
         });
     // Run the initial refresh before starting the server so we can fail fast if something
     // is misconfigured, and can handle client requests right away.
@@ -119,20 +100,17 @@ pub async fn create_server(
 
     let github_token_provider =
         github_auth::GithubTokenProvider::from_options(github_auth::GithubTokenProviderOptions {
-            github_api_base_url: args.github_base_url.clone(),
-            app_client_id: args.app_client_id,
-            app_installation_id: args.app_installation_id,
-            app_key_kms: GcpKmsKeyVersion::new(
-                &args.app_private_key_kms_path
-            )
-            .await?,
+            github_api_base_url: options.github_base_url.clone(),
+            app_client_id: options.app_client_id,
+            app_installation_id: options.app_installation_id,
+            app_key_kms: GcpKmsKeyVersion::new(&options.app_private_key_kms_path).await?,
             user_agent: crate::user_agent::USER_AGENT.to_string(),
         })
         .await?;
 
     let proxy = Proxy::new(crate::proxy::ProxyOptions {
-        ruleset_dir: args.ruleset_dir,
-        github_base_url: args.github_base_url,
+        ruleset_dir: options.ruleset_dir,
+        github_base_url: options.github_base_url,
         client_token_validator,
         github_token_provider,
     })
@@ -144,7 +122,7 @@ pub async fn create_server(
     tokio::spawn(async move {
         proxy_clone
             .refresh_jwks_periodically(std::time::Duration::from_secs(
-                args.issuer_jwks_refresh_interval_seconds,
+                options.issuer_jwks_refresh_interval_seconds,
             ))
             .await;
     });
@@ -157,7 +135,7 @@ pub async fn create_server(
         // TODO: Better tracing (custom layer that logs the relevant bits with masked secrets?)
         .layer(tower_http::trace::TraceLayer::new_for_http());
 
-    info!("Starting GHOXY server on {}", args.address);
-    let listener = tokio::net::TcpListener::bind(args.address).await?;
+    info!("Starting GHOXY server on {}", options.address);
+    let listener = tokio::net::TcpListener::bind(options.address).await?;
     Ok(axum::serve(listener, app))
 }

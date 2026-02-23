@@ -13,7 +13,7 @@ pub trait TokenProvider {
     async fn token(&self, scopes: &[&str]) -> Result<Token>;
 }
 
-pub (crate) struct RealTokenProvider(std::sync::Arc<dyn gcp_auth::TokenProvider>);
+pub(crate) struct RealTokenProvider(std::sync::Arc<dyn gcp_auth::TokenProvider>);
 
 impl RealTokenProvider {
     pub(crate) async fn new() -> Result<Self> {

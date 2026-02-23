@@ -13,8 +13,7 @@
 #![deny(missing_docs)]
 
 mod auth;
-pub use auth::{TokenProvider};
-
+pub use auth::TokenProvider;
 use thiserror::Error;
 
 /// GCP KMS key version.
@@ -91,7 +90,7 @@ impl GcpKmsKeyVersion {
         let key_version = Self {
             key_version_name: key_version_name.to_string(),
             auth_provider: Box::new(auth::RealTokenProvider::new().await?),
-            gcp_kms_api_base_url:"https://cloudkms.googleapis.com".to_string(),
+            gcp_kms_api_base_url: "https://cloudkms.googleapis.com".to_string(),
         };
         key_version.validate_key().await?;
         Ok(key_version)
@@ -100,7 +99,11 @@ impl GcpKmsKeyVersion {
     /// Create a new GcpKmsKeyVersion instance for testing.
     ///
     /// Can override the auth provider and KMS API base url to allow mocking the GCP endpoints.
-    pub async fn new_for_test(key_version_name: &str, auth_provider: Box<dyn TokenProvider + Send + Sync>, gcp_kms_api_base_url: &str) -> Result<Self> {
+    pub async fn new_for_test(
+        key_version_name: &str,
+        auth_provider: Box<dyn TokenProvider + Send + Sync>,
+        gcp_kms_api_base_url: &str,
+    ) -> Result<Self> {
         let key_version = Self {
             key_version_name: key_version_name.to_string(),
             auth_provider,
@@ -132,7 +135,11 @@ impl GcpKmsKeyVersion {
 
         let url = format!("{}/v1/{}", self.gcp_kms_api_base_url, self.key_version_name);
 
-        let resp = client.get(&url).bearer_auth(token.get_sensitive_value()).send().await?;
+        let resp = client
+            .get(&url)
+            .bearer_auth(token.get_sensitive_value())
+            .send()
+            .await?;
 
         if resp.status().is_success() {
             let meta: KeyVersionMetadata = resp.json().await?;

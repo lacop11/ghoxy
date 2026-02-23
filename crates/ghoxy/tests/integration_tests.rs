@@ -122,7 +122,7 @@ async fn test_end_to_end() {
         );
     }).await;
 
-    let args = ghoxy::server::Args {
+    let options = ghoxy::server::ServerOptions {
         address: std::net::SocketAddr::V4(std::net::SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 0)),
 
         allowed_issuers: vec![format!("http://{}", mock_issuer.address())],
@@ -142,7 +142,7 @@ async fn test_end_to_end() {
         gcp_kms_api_base_url: Some(format!("http://{}", mock_gcp_kms.address())),
     };
 
-    let server = ghoxy::server::create_server(args).await.unwrap();
+    let server = ghoxy::server::create_server(options).await.unwrap();
     let address = server.local_addr().unwrap();
     dbg!("Server is listening on {:?}", address);
 
