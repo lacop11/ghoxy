@@ -1,9 +1,9 @@
 next up / semi-sorted by priority:
 - clean up integration test, finish up the full handling
-  - override gcp auth credentials, should not actually get real ones (set some env var in the test?)
-  - provide test config dir
-  - send some requests, check sent headers/body, check proxied response, etc
   - refactor the init bits so we can have a few integration tests easily
+  - provide test config dir
+  - send more requests, some which get rejected etc
+  - check sent headers/body, check proxied response, check token caching
 - make TF repo for basic github stuff
   - readonly and rewrite roles
   - all the basic stuff for repos, teams, rulesets, etc
