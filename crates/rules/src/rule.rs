@@ -91,6 +91,7 @@ impl RuleRest {
         let methods = rest
             .methods
             .iter()
+            .map(AsRef::as_ref)
             .map(parse_method)
             .collect::<Result<Vec<_>>>()?;
         let routes = rest
@@ -107,7 +108,7 @@ impl RuleRest {
     }
 }
 
-fn parse_method(method: &String) -> Result<http::Method> {
+fn parse_method(method: &str) -> Result<http::Method> {
     use http::Method;
     let method = method.parse()?;
     match method {
