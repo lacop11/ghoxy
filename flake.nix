@@ -8,6 +8,10 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -51,6 +55,34 @@
           ];
       };
 
+      checks = forEachSupportedSystem (
+        { pkgs }:
+        {
+          pre-commit-check = inputs.pre-commit-hooks.lib.${pkgs.system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt.enable = true;
+
+              rustfmt = {
+                enable = true;
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo fmt -- --check --color=always";
+                pass_filenames = false;
+              };
+              cargo-check = {
+                enable = true;
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo check";
+                pass_filenames = false;
+              };
+              cargo-clippy = {
+                enable = true;
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo clippy -- -D warnings";
+                pass_filenames = false;
+              };
+            };
+          };
+        }
+      );
+
       devShells = forEachSupportedSystem (
         { pkgs }:
         {
@@ -69,6 +101,10 @@
               # Required by rust-analyzer
               RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
             };
+
+            shellHook = ''
+              ${self.checks.${pkgs.system}.pre-commit-check.shellHook}
+            '';
           };
         }
       );
