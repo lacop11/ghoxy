@@ -78,6 +78,11 @@
                 entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo clippy -- -D warnings";
                 pass_filenames = false;
               };
+              cargo-deny = {
+                enable = true;
+                entry = pkgs.lib.mkForce "${pkgs.rustToolchain}/bin/cargo deny check";
+                pass_filenames = false;
+              };
             };
           };
         }
