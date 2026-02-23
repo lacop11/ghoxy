@@ -12,12 +12,15 @@
 )]
 #![deny(missing_docs)]
 
+mod auth;
+pub use auth::{TokenProvider};
+
 use thiserror::Error;
 
 /// GCP KMS key version.
 pub struct GcpKmsKeyVersion {
-    auth_provider: std::sync::Arc<dyn gcp_auth::TokenProvider>,
     key_version_name: String,
+    auth_provider: Box<dyn TokenProvider + Send + Sync>,
     gcp_kms_api_base_url: String,
 }
 
@@ -84,17 +87,31 @@ impl GcpKmsKeyVersion {
     /// Create a new GcpKmsKeyVersion instance.
     ///
     /// Will check if the provided key version can be used for signing.
-    pub async fn new(key_version_name: &str, gcp_kms_api_base_url: Option<&str>) -> Result<Self> {
-        let auth_provider = gcp_auth::provider().await?;
+    pub async fn new(key_version_name: &str) -> Result<Self> {
         let key_version = Self {
-            auth_provider,
             key_version_name: key_version_name.to_string(),
-            gcp_kms_api_base_url: gcp_kms_api_base_url
-                .unwrap_or("https://cloudkms.googleapis.com")
-                .to_string(),
+            auth_provider: Box::new(auth::RealTokenProvider::new().await?),
+            gcp_kms_api_base_url:"https://cloudkms.googleapis.com".to_string(),
         };
+        key_version.validate_key().await?;
+        Ok(key_version)
+    }
 
-        let metadata = key_version.get_medatadata().await?;
+    /// Create a new GcpKmsKeyVersion instance for testing.
+    ///
+    /// Can override the auth provider and KMS API base url to allow mocking the GCP endpoints.
+    pub async fn new_for_test(key_version_name: &str, auth_provider: Box<dyn TokenProvider + Send + Sync>, gcp_kms_api_base_url: &str) -> Result<Self> {
+        let key_version = Self {
+            key_version_name: key_version_name.to_string(),
+            auth_provider,
+            gcp_kms_api_base_url: gcp_kms_api_base_url.to_string(),
+        };
+        key_version.validate_key().await?;
+        Ok(key_version)
+    }
+
+    async fn validate_key(&self) -> Result<()> {
+        let metadata = self.get_medatadata().await?;
         if let KeyVersionState::UnsupportedState(s) = metadata.state {
             return Err(Error::UnsupportedState(s));
         }
@@ -105,7 +122,7 @@ impl GcpKmsKeyVersion {
         {
             return Err(Error::UnsupportedProtectionLevel(s));
         }
-        Ok(key_version)
+        Ok(())
     }
 
     /// Get metadata about the key version.
@@ -115,7 +132,7 @@ impl GcpKmsKeyVersion {
 
         let url = format!("{}/v1/{}", self.gcp_kms_api_base_url, self.key_version_name);
 
-        let resp = client.get(&url).bearer_auth(token.as_str()).send().await?;
+        let resp = client.get(&url).bearer_auth(token.get_sensitive_value()).send().await?;
 
         if resp.status().is_success() {
             let meta: KeyVersionMetadata = resp.json().await?;
@@ -155,7 +172,7 @@ impl GcpKmsKeyVersion {
 
         let resp = client
             .post(&url)
-            .bearer_auth(token.as_str())
+            .bearer_auth(token.get_sensitive_value())
             .json(&request_body)
             .send()
             .await?;

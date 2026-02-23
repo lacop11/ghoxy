@@ -129,7 +129,7 @@ async fn test_end_to_end() {
         expected_audience: "test-audience".to_string(),
 
         app_client_id: "test-client-id".to_string(),
-        app_installation_id: "test-installation-id".to_string(),
+        app_installation_id: "123456".to_string(),
         app_private_key_kms_path: "projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1".to_string(),
 
         token_age_leeway_seconds: 60,

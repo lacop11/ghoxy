@@ -5,6 +5,9 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
+token = { path = "../token" }
+
+async-trait = "0.1.89"
 base64 = "0.22.1"
 gcp_auth = { version = "0.12.6", default-features = false, features = ["aws-lc-rs"] }
 http = "1.4.0"

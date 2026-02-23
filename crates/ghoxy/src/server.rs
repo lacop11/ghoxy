@@ -123,8 +123,7 @@ pub async fn create_server(
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
             app_key_kms: GcpKmsKeyVersion::new(
-                &args.app_private_key_kms_path,
-                args.gcp_kms_api_base_url.as_deref(),
+                &args.app_private_key_kms_path
             )
             .await?,
             user_agent: crate::user_agent::USER_AGENT.to_string(),

@@ -41,7 +41,7 @@ async fn main() {
             github_api_base_url: "https://api.github.com".to_string(),
             app_client_id: args.app_client_id,
             app_installation_id: args.app_installation_id,
-            app_key_kms: GcpKmsKeyVersion::new(&args.app_private_key_kms_path, None)
+            app_key_kms: GcpKmsKeyVersion::new(&args.app_private_key_kms_path)
                 .await
                 .expect("Failed to create GcpKmsKeyVersion"),
             user_agent: ghoxy::user_agent::USER_AGENT.to_string(),

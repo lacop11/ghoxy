@@ -675,12 +675,14 @@ dependencies = [
 name = "gcp-kms-sign"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
  "base64",
  "gcp_auth",
  "http",
  "reqwest 0.13.1",
  "serde",
  "thiserror 2.0.17",
+ "token",
 ]
 
 [[package]]
