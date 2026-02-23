@@ -37,12 +37,12 @@ pub struct Args {
 
     #[arg(long, default_value = "https://api.github.com")]
     pub github_base_url: String,
-    #[arg(long)]
-    pub gcp_kms_api_base_url: Option<String>,
 
     #[arg(long, default_value_t = 30)]
     pub issuer_jwks_refresh_interval_seconds: u64,
 }
+
+// TODO: Avoid "expect", nicer error handling (via anyhow maybe?). Enforce via clippy lint.
 
 #[tokio::main]
 async fn main() {
@@ -72,9 +72,10 @@ async fn main() {
         token_age_leeway_seconds: args.token_age_leeway_seconds,
         app_client_id: args.app_client_id,
         app_installation_id: args.app_installation_id,
-        app_private_key_kms_path: args.app_private_key_kms_path,
+        app_private_key: gcp_kms_sign::GcpKmsKeyVersion::new(&args.app_private_key_kms_path)
+            .await
+            .expect("Failed to create GCP KMS key"),
         github_base_url: args.github_base_url,
-        gcp_kms_api_base_url: args.gcp_kms_api_base_url,
         issuer_jwks_refresh_interval_seconds: args.issuer_jwks_refresh_interval_seconds,
     };
 

@@ -1,5 +1,5 @@
 use aws_lc_rs::{encoding::AsDer, signature::KeyPair};
-use base64::Engine;
+use base64::{Engine, prelude::*};
 // Integration tests mocking all external dependencies (Github, OIDC issuer and GCP KMS).
 use httpmock::prelude::*;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -121,16 +121,70 @@ async fn test_end_to_end() {
             .to_string(),
         );
     }).await;
+    let dummy_signature = [42u8; 256]; // 2048 bit RSA signature.
+    let mock_gcp_kms_sign = mock_gcp_kms.mock_async(|when, then| {
+        when.path("/v1/projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1:asymmetricSign").method("POST");
+        then.status(200)
+        .header("content-type", "application/json")
+        .body(
+            serde_json::json!({
+                "signature": BASE64_STANDARD.encode(&dummy_signature),
+            })
+            .to_string(),
+        );
+    }).await;
+
+    let app_private_key = gcp_kms_sign::GcpKmsKeyVersion::new_for_test(
+        "projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1",
+        Box::new(MockTokenProvider),
+        format!("http://{}", mock_gcp_kms.address())
+    ).await.unwrap();
+
+    let mock_github = MockServer::start_async().await;
+    let mock_github_installation_token = mock_github
+        .mock_async(|when, then| {
+            when.path("/app/installations/123456/access_tokens")
+                .method("POST");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                serde_json::json!({
+                    "token": "mock-installation-token",
+                    "expires_at": (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339(),
+                })
+                .to_string(),
+            );
+        })
+        .await;
+    let mock_github_members = mock_github
+        .mock_async(|when, then| {
+            when.path("/orgs/someorg/members")
+                .method("GET")
+                .header("authorization", "Bearer mock-installation-token");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    serde_json::json!([
+                        {"login": "user1"},
+                        {"login": "user2"},
+                    ])
+                    .to_string(),
+                );
+        })
+        .await;
 
     let options = ghoxy::server::ServerOptions {
-        address: std::net::SocketAddr::V4(std::net::SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, 0)),
+        address: std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
+            std::net::Ipv4Addr::LOCALHOST,
+            0,
+        )),
 
         allowed_issuers: vec![format!("http://{}", mock_issuer.address())],
         expected_audience: "test-audience".to_string(),
 
         app_client_id: "test-client-id".to_string(),
         app_installation_id: "123456".to_string(),
-        app_private_key_kms_path: "projects/example-project/locations/global/keyRings/test-ring/cryptoKeys/test-key/cryptoKeyVersions/1".to_string(),
+        app_private_key,
 
         token_age_leeway_seconds: 60,
         issuer_jwks_refresh_interval_seconds: 3600,
@@ -138,8 +192,7 @@ async fn test_end_to_end() {
         // TODO: generate temp dir with some rules for this
         ruleset_dir: std::path::PathBuf::from("../../example-rules"),
 
-        github_base_url: "http://github-base.example.com".to_string(),
-        gcp_kms_api_base_url: Some(format!("http://{}", mock_gcp_kms.address())),
+        github_base_url: format!("http://{}", mock_github.address()),
     };
 
     let server = ghoxy::server::create_server(options).await.unwrap();
@@ -175,10 +228,35 @@ async fn test_end_to_end() {
         .unwrap();
     assert!(response.status().is_success());
 
-    // TODO send some requests
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+    mock_gcp_kms_sign.assert();
+    mock_github_installation_token.assert();
+    mock_github_members.assert();
+
+    assert!(
+        response.json::<serde_json::Value>().await.unwrap()
+            == serde_json::json!([
+                {"login": "user1"},
+                {"login": "user2"},
+            ])
+    );
+
+    // TODO: More test coverage:
+    // - validate the headers in mocks (at least partially)
+    // - incorrect JWT - rejected
+    // - caches installation tokens
+    // - proxies body in request too
 
     // Shutdown the server and wait for it to finish cleanly.
     shutdown_tx.send(()).unwrap();
     server_task.await.unwrap();
+}
+
+// TODO: Move to shared test module.
+struct MockTokenProvider;
+
+#[async_trait::async_trait]
+impl gcp_kms_sign::TokenProvider for MockTokenProvider {
+    async fn token(&self, _scopes: &[&str]) -> gcp_kms_sign::Result<token::Token> {
+        Ok(token::Token::new("mock-token".to_string()))
+    }
 }

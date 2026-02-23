@@ -26,6 +26,8 @@ lazy_static = "1.5.0"
 rustls = { version = "0.23.26", default-features=false, features = ["aws_lc_rs"] }
 
 [dev-dependencies]
+async-trait = "0.1.89"
+chrono = "0.4.43"
 httpmock = "0.8.3"
 serde_json = "1.0.149"
 jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }

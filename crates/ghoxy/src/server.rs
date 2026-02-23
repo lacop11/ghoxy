@@ -7,7 +7,6 @@ use axum::{
     http::{Request, StatusCode},
     response::IntoResponse,
 };
-use gcp_kms_sign::GcpKmsKeyVersion;
 use tracing::info;
 
 use crate::{error::ServerResult, proxy::Proxy};
@@ -23,10 +22,9 @@ pub struct ServerOptions {
 
     pub app_client_id: String,
     pub app_installation_id: String,
-    pub app_private_key_kms_path: String,
+    pub app_private_key: gcp_kms_sign::GcpKmsKeyVersion,
 
     pub github_base_url: String,
-    pub gcp_kms_api_base_url: Option<String>,
 
     pub issuer_jwks_refresh_interval_seconds: u64,
 }
@@ -103,7 +101,7 @@ pub async fn create_server(
             github_api_base_url: options.github_base_url.clone(),
             app_client_id: options.app_client_id,
             app_installation_id: options.app_installation_id,
-            app_key_kms: GcpKmsKeyVersion::new(&options.app_private_key_kms_path).await?,
+            app_key_kms: options.app_private_key,
             user_agent: crate::user_agent::USER_AGENT.to_string(),
         })
         .await?;

@@ -102,12 +102,12 @@ impl GcpKmsKeyVersion {
     pub async fn new_for_test(
         key_version_name: &str,
         auth_provider: Box<dyn TokenProvider + Send + Sync>,
-        gcp_kms_api_base_url: &str,
+        gcp_kms_api_base_url: String,
     ) -> Result<Self> {
         let key_version = Self {
             key_version_name: key_version_name.to_string(),
             auth_provider,
-            gcp_kms_api_base_url: gcp_kms_api_base_url.to_string(),
+            gcp_kms_api_base_url,
         };
         key_version.validate_key().await?;
         Ok(key_version)

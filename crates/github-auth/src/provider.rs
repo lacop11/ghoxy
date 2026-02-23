@@ -164,7 +164,7 @@ impl GithubTokenProvider {
             .asymmetric_sign(partial_jwt.as_bytes())
             .await
             .map_err(Arc::new)?;
-        let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature),);
+        let signed_jwt = format!("{}.{}", partial_jwt, base64_url_encoded(&signature));
         Ok(Token::new(signed_jwt))
     }
 }
