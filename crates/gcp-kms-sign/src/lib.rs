@@ -3,14 +3,8 @@
 //! Provides API to sign data using asymmetric keys stored in Google Cloud KMS.
 //! No other KMS operations are supported.
 
-#![deny(
-    clippy::unwrap_used,
-    clippy::expect_used,
-    clippy::panic,
-    clippy::todo,
-    clippy::unimplemented
-)]
-#![deny(missing_docs)]
+// TODO: Enable workspace-wide.
+#![deny(clippy::expect_used)]
 
 mod auth;
 pub use auth::TokenProvider;

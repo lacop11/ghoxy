@@ -6,9 +6,10 @@ use clap::Parser;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+// TODO: Doc comments for all flags, suitable defaults (or lack of + required to be explicit).
+#[allow(missing_docs)]
 #[derive(Parser, Debug)]
 #[command(version, about)]
-// TODO: Doc comments for all flags, suitable defaults (or lack of + required to be explicit).
 // TODO: Reorganize / rename flags for better UX. Should have common prefix for related stuff etc.
 pub struct Args {
     #[arg(long, default_value = "127.0.0.1:3000")]
@@ -64,7 +65,7 @@ async fn main() {
 
     let args = Args::parse();
 
-    let options = ghoxy::server::ServerOptions {
+    let options = ghoxy::ServerOptions {
         address: args.address,
         ruleset_dir: args.ruleset_dir,
         expected_audience: args.expected_audience,
@@ -79,7 +80,7 @@ async fn main() {
         issuer_jwks_refresh_interval_seconds: args.issuer_jwks_refresh_interval_seconds,
     };
 
-    let server = ghoxy::server::create_server(options)
+    let server = ghoxy::create_server(options)
         .await
         .expect("Failed to create server");
     server.await.expect("Server encountered an error");

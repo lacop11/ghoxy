@@ -50,7 +50,7 @@
             # Latest rustfmt, we want some nightly/unstable features.
             # This does not impact the produced binaries so there is no risk.
             fenixPkgs.latest.rustfmt
-            # Stable everything else/
+            # Stable everything else.
             stableToolchain
           ];
       };

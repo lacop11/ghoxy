@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use aws_lc_rs::signature::KeyPair;
 use base64::{Engine, prelude::*};
 // Integration tests mocking all external dependencies (Github, OIDC issuer and GCP KMS).
@@ -173,7 +175,7 @@ async fn test_end_to_end() {
         })
         .await;
 
-    let options = ghoxy::server::ServerOptions {
+    let options = ghoxy::ServerOptions {
         address: std::net::SocketAddr::V4(std::net::SocketAddrV4::new(
             std::net::Ipv4Addr::LOCALHOST,
             0,
@@ -195,7 +197,7 @@ async fn test_end_to_end() {
         github_base_url: format!("http://{}", mock_github.address()),
     };
 
-    let server = ghoxy::server::create_server(options).await.unwrap();
+    let server = ghoxy::create_server(options).await.unwrap();
     let address = server.local_addr().unwrap();
     dbg!("Server is listening on {:?}", address);
 

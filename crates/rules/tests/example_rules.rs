@@ -1,5 +1,7 @@
 // Test that all the example rules are actually valid.
 
+#![allow(missing_docs)]
+
 use rules::RuleSet;
 
 #[test]

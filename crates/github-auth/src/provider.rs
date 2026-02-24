@@ -6,14 +6,24 @@ use tracing::info;
 
 use crate::{Error, Permissions, Result};
 
+/// Options for configuring the GithubTokenProvider.
 pub struct GithubTokenProviderOptions {
+    /// Base URL for GitHub API, eg. https://api.github.com or GitHub Enterprise URL.
     pub github_api_base_url: String,
+    /// The GitHub App client id.
     pub app_client_id: String,
+    /// The GitHub App installation id.
     pub app_installation_id: String,
+    /// The GCP KMS key version holding the app private key.
     pub app_key_kms: GcpKmsKeyVersion,
+    /// The User-Agent header to use for GitHub API requests.
     pub user_agent: String,
 }
 
+/// Provides Github installation access tokens with requested permissions.
+///
+/// Uses GCP KMS key to sign the JWTs for authenticating to GitHub. Returned tokens
+/// are cached internally for some time to reduce number of actual requests.
 pub struct GithubTokenProvider {
     options: GithubTokenProviderOptions,
     token_cache: moka::future::Cache<Permissions, Token>,
@@ -25,6 +35,7 @@ pub struct GithubTokenProvider {
 const GITHUB_TOKEN_CACHE_TTL: std::time::Duration = std::time::Duration::from_mins(5);
 
 impl GithubTokenProvider {
+    /// Create a new GithubTokenProvider from options.
     pub async fn from_options(options: GithubTokenProviderOptions) -> Result<Self> {
         // Installation ids should be numeric. The size is not specified by github, but we at least
         // check its all digits, this avoids any url encoding shenanigans when sending requests.
@@ -45,6 +56,7 @@ impl GithubTokenProvider {
         })
     }
 
+    /// Get installation access token with the requested non-empty permissions.
     pub async fn get_installation_access_token(&self, permissions: &Permissions) -> Result<Token> {
         // Note: The Arc around errors is because the moka cache will coalesce multiple concurrent calls
         // here and only call create_installation_access_token once (which is great, we want that), so if

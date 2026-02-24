@@ -2,11 +2,16 @@ use std::collections::BTreeMap;
 
 use crate::{Error, Result, Rule};
 
+/// A collection of `Rule`s, keyed by their name.
 pub struct RuleSet {
     rules: BTreeMap<String, Rule>,
 }
 
 impl RuleSet {
+    /// Load rules from a directory.
+    ///
+    /// The directory should contain only `.toml` files, each representing a rule.
+    /// The filename (without the `.toml` extension) is used as the rule name.
     pub fn from_directory<P: AsRef<std::path::Path>>(dir: P) -> Result<Self> {
         let mut rules = BTreeMap::new();
         for entry in std::fs::read_dir(dir)? {
@@ -25,6 +30,7 @@ impl RuleSet {
         Ok(RuleSet { rules })
     }
 
+    /// Get rule by name, if it exists.
     pub fn get_rule(&self, name: &str) -> Option<&Rule> {
         self.rules.get(name)
     }

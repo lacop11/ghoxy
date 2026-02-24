@@ -59,4 +59,5 @@ pub enum ServerError {
     IoError(#[from] std::io::Error),
 }
 
+/// Result type for server operations.
 pub type ServerResult<T> = std::result::Result<T, ServerError>;

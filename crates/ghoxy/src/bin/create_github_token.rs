@@ -44,7 +44,7 @@ async fn main() {
             app_key_kms: GcpKmsKeyVersion::new(&args.app_private_key_kms_path)
                 .await
                 .expect("Failed to create GcpKmsKeyVersion"),
-            user_agent: ghoxy::user_agent::USER_AGENT.to_string(),
+            user_agent: ghoxy::USER_AGENT.to_string(),
         })
         .await
         .expect("Failed to create GithubTokenProvider");

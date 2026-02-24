@@ -2,6 +2,7 @@ use regex::Regex;
 
 use crate::Result;
 
+/// A single rule with CEL program for checking claims and allowed REST or GraphQL requests.
 #[derive(Debug)]
 pub struct Rule {
     claims: cel::Program,
@@ -9,6 +10,7 @@ pub struct Rule {
     // TODO: graphql allow rules.
 }
 
+/// A rule for REST API requests.
 #[derive(Debug)]
 pub struct RuleRest {
     // TODO enumset?
@@ -18,6 +20,7 @@ pub struct RuleRest {
 }
 
 impl Rule {
+    /// Loads a rule from a file, parsing and validating it.
     pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
         Rule::from_str(&content)

@@ -11,6 +11,8 @@ use tracing::info;
 
 use crate::{error::ServerResult, proxy::Proxy};
 
+// TODO: Fix, add docs.
+#[allow(missing_docs)]
 pub struct ServerOptions {
     pub address: SocketAddr,
 
@@ -83,6 +85,8 @@ async fn proxy_request(
     }
 }
 
+/// Create axum server with given options.
+/// Caller must await it to run the server loop until shutdown.
 pub async fn create_server(
     options: ServerOptions,
 ) -> ServerResult<axum::serve::Serve<tokio::net::TcpListener, Router, Router>> {

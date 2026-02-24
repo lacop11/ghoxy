@@ -1,5 +1,8 @@
 use crate::Result;
 
+/// Set of github app permissions, as pairs of scope and access level.
+///
+/// Guaranteed to be non-empty, and without duplicate scopes.
 // Must be usable as key in HashMap.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Permissions {
@@ -7,6 +10,7 @@ pub struct Permissions {
 }
 
 impl Permissions {
+    /// Parse from list of "scope:access" strings, e.g. "repo:read", "repo:write", "admin:org".
     pub fn from_permission_list(permissions: &[String]) -> Result<Self> {
         // TODO: Maybe do validation here? we can check against known list of permissions
         // to catch errors in config files early. would get out of sync when github adds
@@ -35,6 +39,7 @@ impl Permissions {
         })
     }
 
+    /// Convert to JSON map for github token request.
     pub fn to_json_map(&self) -> serde_json::Value {
         let mut map = serde_json::Map::new();
         for (scope, access) in &self.scope_access_pairs {

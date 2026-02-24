@@ -19,6 +19,7 @@ next up / semi-sorted by priority:
 - get docker build from nix working
 - make CI pipeline (build, check, deny, clippy, format, everything)
 - after all that go through the big lists below, some might be obsolete / irrelevant
+- try cargo cackle ?
 
 =======
 
@@ -86,9 +87,6 @@ from claude review, filtered down to the actually useful stuff (lots of duplicat
   Fix: Document requirement for reverse proxy/TLS termination
 - GCP KMS Creates New Client Per Request (lib.rs:113, 134)
   Resource overhead and potential connection exhaustion
-- Inconsistent Safety Policy Enforcement
-  #![deny(clippy::unwrap_used)] not applied to all crates
-  Some crates use .expect() liberally despite policy
 - Missing Claims Parsing Tests (claims.rs:142)
   No tests for critical claim extraction logic
 - Incomplete Documentation (README.md:47-55)
