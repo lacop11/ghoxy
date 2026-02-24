@@ -4,6 +4,9 @@ license = "MIT OR Apache-2.0"
 version = "0.0.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }
 jwks = { version = "0.5.2", default-features = false, features = ["aws_lc_rs"] }

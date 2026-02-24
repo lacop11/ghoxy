@@ -4,36 +4,39 @@ license = "MIT OR Apache-2.0"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
-gcp-kms-sign = { path = "../gcp-kms-sign" }
 client-auth = { path = "../client-auth" }
+gcp-kms-sign = { path = "../gcp-kms-sign" }
 github-auth = { path = "../github-auth" }
 rules = { path = "../rules" }
 token = { path = "../token" }
 
-http = "1.4.0"
-tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
-clap = { version = "4.5.54", features = ["derive"] }
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
 axum = "0.8.8"
-tracing = "0.1.44"
-tower-http = {version = "0.6.8", features = ["trace"] }
-thiserror = "2.0.17"
-reqwest = { version = "0.13.1", features = ["stream"] }
+clap = { version = "4.5.54", features = ["derive"] }
+http = "1.4.0"
 lazy_static = "1.5.0"
+reqwest = { version = "0.13.1", features = ["stream"] }
+thiserror = "2.0.17"
+tokio = { version = "1.49.0", features = ["macros", "rt-multi-thread"] }
+tower-http = {version = "0.6.8", features = ["trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
 
 # TODO: Avoid direct dependency, remove ring from all transitive deps instead?
 rustls = { version = "0.23.26", default-features=false, features = ["aws_lc_rs"] }
 
 [dev-dependencies]
 async-trait = "0.1.89"
-chrono = "0.4.43"
-httpmock = "0.8.3"
-serde_json = "1.0.149"
-jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }
 aws-lc-rs = "1.15.2"
 base64 = "0.22.1"
+chrono = "0.4.43"
+httpmock = "0.8.3"
+jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 
 [[bin]]
 name = "dump-client-token"
