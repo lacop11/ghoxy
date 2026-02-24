@@ -41,9 +41,10 @@ impl TokenValidator {
     /// Must be called at least once before calling `validate`,
     /// and should be called periodically to refresh keys.
     pub async fn update_jwks(&self) -> Result<()> {
-        // TODO: Instead of making caller deal with this, call this internally on startup and also
+        // NICETOHAVE: Instead of making caller deal with this, call this internally on startup and also
         // periodically on user request? This isn't latency sensitive after all, its fine if we sometimes
         // do extra work in `validate` and it makes the api simpler / harder to misuse.
+
         for (issuer, jwks_lock) in &self.cached_jwks {
             let openid_config_url = format!("{}/.well-known/openid-configuration", issuer);
             let jwks = jwks::Jwks::from_oidc_url(openid_config_url).await?;

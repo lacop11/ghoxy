@@ -8,7 +8,7 @@ use crate::{Error, Permissions, Result};
 
 /// Options for configuring the GithubTokenProvider.
 pub struct GithubTokenProviderOptions {
-    /// Base URL for GitHub API, eg. https://api.github.com or GitHub Enterprise URL.
+    /// Base URL for GitHub API, eg. `https://api.github.com` or GitHub Enterprise URL.
     pub github_api_base_url: String,
     /// The GitHub App client id.
     pub app_client_id: String,
@@ -158,7 +158,6 @@ impl GithubTokenProvider {
                     .expect("Should never underflow"),
             ),
             // Maximum 10 minutes in the future, default to 5 minutes.
-            // TODO: Maybe this should be part of options?
             exp: unix_seconds_at(
                 now.checked_add(std::time::Duration::from_secs(300))
                     .expect("Should never overflow"),

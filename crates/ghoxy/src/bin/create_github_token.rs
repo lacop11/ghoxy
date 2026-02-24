@@ -18,7 +18,7 @@ struct Args {
     #[arg(long)]
     app_private_key_kms_path: String,
 
-    /// Comma-separated list of permissions to request, in the form <permission>:<access>,
+    /// Comma-separated list of permissions to request, in the form `scope:access`,
     /// for example "issues:read,contents:write". Must not be empty, and must be a subset
     /// of the permissions granted to the app installation.
     #[arg(long, use_value_delimiter = true)]

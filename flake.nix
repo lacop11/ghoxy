@@ -97,9 +97,6 @@
               cargo-deny
               cargo-watch
               rust-analyzer
-              # TODO: Might be needed.
-              # openssl
-              # pkg-config
             ];
 
             env = {

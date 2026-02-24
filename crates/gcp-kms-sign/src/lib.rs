@@ -52,8 +52,8 @@ pub enum KeyVersionAlgorithm {
     /// RSA_SIGN_PKCS1_2048_SHA256
     #[serde(rename = "RSA_SIGN_PKCS1_2048_SHA256")]
     RsaSign2048Pkcs1Sha256,
-    // TODO: This is not exhaustive list, we should add more supported algorithms as needed,
-    //       or maybe just allow anything starting with RSA_SIGN_... ?
+    // NICETOHAVE: This is not exhaustive list, we should add more supported algorithms as needed,
+    // or maybe just allow anything starting with RSA_SIGN_... ?
     /// Unsupported algorithm.
     /// We don't care what the algorithm is, the key version can't be used to sign.
     #[serde(untagged)]

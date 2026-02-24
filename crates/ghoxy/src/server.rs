@@ -129,7 +129,7 @@ pub async fn create_server(
             .await;
     });
 
-    // TODO: add tracing + compression middleware?
+    // TODO: Add tracing middleware for support of trace-id propagation from loadbalancer?
     let app = axum::Router::new()
         .route("/health", axum::routing::get(health))
         .fallback(proxy_request)

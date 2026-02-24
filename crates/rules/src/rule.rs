@@ -13,7 +13,6 @@ pub struct Rule {
 /// A rule for REST API requests.
 #[derive(Debug)]
 pub struct RuleRest {
-    // TODO enumset?
     methods: Vec<http::Method>,
     routes: Vec<Regex>,
     permissions: github_auth::Permissions,
@@ -29,7 +28,7 @@ impl Rule {
     fn from_str(content: &str) -> Result<Self> {
         let rule_file: internal::Rule = toml::from_str(content)?;
 
-        // TODO: validate the cel rule:
+        // FIXME: validate the cel rule:
         // - should reference some claims
         // - should pass for some example claims (doesn't matter if true/false but not crash)
         Ok(Rule {
@@ -319,5 +318,5 @@ mod tests {
         ));
     }
 
-    // TODO: check CEL programs
+    // FIXME: check CEL programs
 }
