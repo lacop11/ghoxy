@@ -43,7 +43,7 @@ pub struct Args {
 }
 
 // TODO: Avoid "expect", nicer error handling (via anyhow maybe?). Enforce via clippy lint.
-
+#[allow(clippy::expect_used)]
 #[tokio::main]
 async fn main() {
     // TODO: Remove ring from all transitive deps and let it use aws-lc-rs by default automatically?
@@ -79,6 +79,8 @@ async fn main() {
         issuer_jwks_refresh_interval_seconds: args.issuer_jwks_refresh_interval_seconds,
     };
 
-    let server = ghoxy::server::create_server(options).await.unwrap();
-    server.await.unwrap();
+    let server = ghoxy::server::create_server(options)
+        .await
+        .expect("Failed to create server");
+    server.await.expect("Server encountered an error");
 }

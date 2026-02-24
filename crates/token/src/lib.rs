@@ -1,12 +1,16 @@
+//! Token wrapper that prevents accidental logging.
+
 /// Token wrapper that prevents accidental logging.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Token(String);
 
 impl Token {
+    /// Wrap a sensitive string.
     pub fn new(token: String) -> Self {
         Token(token)
     }
 
+    /// Unwrap the sensitive value.
     pub fn get_sensitive_value(&self) -> &str {
         &self.0
     }
