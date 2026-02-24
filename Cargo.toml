@@ -4,14 +4,17 @@ members = ["crates/*"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+unused_must_use = "deny"
+
 # TODO: enforce.
- #missing_docs = "deny"
+# missing_docs = "deny"
 
 [workspace.lints.clippy]
 panic = "deny"
 unwrap_used = "deny"
 todo = "deny"
 unimplemented = "deny"
+unreachable = "deny"
 
 # TODO: Enforce maybe? There are some places where it makes sense but
 # maybe we can just do exceptions for those as needed and ban by default.
