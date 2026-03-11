@@ -90,3 +90,22 @@ from claude review, filtered down to the actually useful stuff (lots of duplicat
 - Missing Claims Parsing Tests (claims.rs:142)
   No tests for critical claim extraction logic
 - Incomplete Documentation (README.md:47-55)
+
+resources to test on + prepare default configs for (read/read-write TF roles)
+based on actual production usage plan
+
+cat /tmp/ghplan| cut -d: -f1 | cut -d"[" -f1 | sed -E "s/^data\.//g" | sed -E "s/^module\.[^.]+\.//g" | cut -d. -f1 | grep "^github_" | sort | uniq -c | sort -rn
+ xxx github_membership
+  xx github_team_members
+  xx github_team
+  xx github_repository_custom_property
+  xx github_repository_collaborators
+  xx github_repository
+  xx github_repository_ruleset
+   x github_rest_api
+   x github_organization_teams
+   x github_organization_external_identities
+   x github_team_settings
+   x github_organization_custom_properties
+   x github_actions_repository_access_level
+   x github_actions_organization_permissions
