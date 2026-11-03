@@ -1,5 +1,8 @@
 # Ghoxy: GitHub API proxy with better authentication
 
+> [!CAUTION]
+> This is an unfinished prototype, not suitable for use.
+
 A proxy between your IaC provisioning, Actions workflows or other automation and GitHub itself. Provides a much finer control over permissions and removes the need to keep creating new GitHub Apps for every tiny usecase.
 
 ## Motivation
